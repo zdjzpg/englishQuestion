@@ -29,7 +29,7 @@ const app = express();
 const port = Number(process.env.API_PORT || 3001);
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '20mb' }));
 
 function getBearerToken(req) {
   const authHeader = req.headers.authorization || '';

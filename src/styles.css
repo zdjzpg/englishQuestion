@@ -940,9 +940,9 @@ button {
 
 .reward-editor-row {
   display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) 140px auto;
+  grid-template-columns: minmax(0, 168px) minmax(0, 1fr) 120px auto;
   gap: 10px;
-  align-items: start;
+  align-items: center;
 }
 
 .listen-choice-editor-list {
@@ -952,9 +952,9 @@ button {
 
 .listen-choice-editor-row {
   display: grid;
-  grid-template-columns: 72px minmax(120px, 148px) minmax(0, 1fr) 120px auto;
+  grid-template-columns: 72px minmax(0, 168px) minmax(0, 1fr) 120px auto;
   gap: 10px;
-  align-items: start;
+  align-items: center;
   padding: 14px;
   border-radius: 18px;
   border: 1px solid #d9e4ef;
@@ -986,12 +986,22 @@ button {
 }
 
 .image-upload-field.compact {
-  min-width: 120px;
-  max-width: 148px;
+  min-width: 0;
+  max-width: none;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
 }
 
 .image-upload-field .ant-space {
   flex-wrap: wrap;
+}
+
+.image-upload-actions.compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  align-content: center;
 }
 
 .image-upload-preview {
@@ -1011,12 +1021,16 @@ button {
 }
 
 .image-upload-field.compact .image-upload-preview {
-  width: 120px;
-  padding: 6px;
+  width: 96px;
+  padding: 4px;
 }
 
 .image-upload-field.compact .image-upload-preview-img {
-  max-height: 84px;
+  max-height: 64px;
+}
+
+.image-upload-field.compact .ant-space-item {
+  margin-inline-end: 0 !important;
 }
 
 .student-overlay {
@@ -1631,6 +1645,7 @@ button {
 
 .admin-shell {
   min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   background:
@@ -1744,10 +1759,17 @@ button {
 .admin-main-layout {
   min-width: 0;
   width: 100%;
-  padding: 24px 28px 32px;
   display: grid;
   gap: 20px;
   align-content: start;
+}
+
+.admin-main-layout {
+  min-height: 0;
+  height: 100vh;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 24px 28px 24px;
+  overflow: hidden;
 }
 
 .admin-topbar {
@@ -1856,6 +1878,8 @@ button {
 
 .admin-content {
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .admin-nav-menu.ant-menu {
@@ -1879,6 +1903,7 @@ button {
   display: grid;
   gap: 20px;
   font-family: var(--font-admin);
+  min-height: 0;
 }
 
 .admin-section {
@@ -2319,6 +2344,18 @@ button {
   max-width: 100%;
 }
 
+.admin-papers-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
+  max-width: 100%;
+}
+
+.admin-papers-actions .ant-space-item {
+  max-width: 100%;
+}
+
 .admin-type-button.ant-btn {
   border-radius: 14px;
   height: 40px;
@@ -2372,6 +2409,12 @@ button {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.4fr);
   gap: 20px;
+}
+
+.admin-editor-scroll {
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .admin-inline-message {

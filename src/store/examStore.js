@@ -48,7 +48,7 @@ const { getPaperScoreSummary } = paperValidation;
 const { normalizeShareCode } = shareCodeUtils;
 const { getReadAloudBuddyState, getListeningBuddyState } = audioFeedbackUtils;
 const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
-const { REPORT_ABILITIES } = questionAbilitiesUtils;
+const { REPORT_ABILITIES, getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilitiesUtils;
 const { evaluateNewQuestionAnswer } = questionTypeSupport;
 const { buildWeightedAbilityMap, toAbilityItems } = reportAbilitiesUtils;
 const { normalizeReportCommentConfig, resolveReportComments } = reportCommentsUtils;
@@ -478,7 +478,10 @@ export function useExamStore() {
           shareCode: paper.shareCode,
           rewardConfig: normalizeRewardConfig(paper.rewardConfig || {}),
           commentConfig: normalizeReportCommentConfig(paper.commentConfig || {}),
-          questions: clone(paper.questions)
+          questions: clone(paper.questions).map((question) => ({
+            ...question,
+            abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type))
+          }))
         };
         syncLegacyEditingConfig();
         setError(null);
@@ -496,6 +499,10 @@ export function useExamStore() {
     async saveEditingPaper() {
       state.loading = true;
       try {
+        state.editingPaper.questions = state.editingPaper.questions.map((question) => ({
+          ...question,
+          abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type))
+        }));
         if (state.editingPaperId) {
           const saved = await apiUpdatePaper(state.editingPaperId, getSavePayload(state.editingPaper));
           state.editingPaper.shareCode = saved.shareCode || state.editingPaper.shareCode;

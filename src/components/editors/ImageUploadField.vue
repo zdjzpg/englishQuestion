@@ -3,7 +3,7 @@
     <div v-if="modelValue" class="image-upload-preview">
       <img :src="modelValue" alt="uploaded preview" class="image-upload-preview-img" />
     </div>
-    <a-space wrap>
+    <a-space wrap :class="{ 'image-upload-actions': true, compact }">
       <a-upload
         accept="image/*"
         :show-upload-list="false"

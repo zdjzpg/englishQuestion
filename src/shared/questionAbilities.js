@@ -29,7 +29,7 @@ function normalizeQuestionAbilities(value, fallback = ['读']) {
   );
 
   if (normalized.length) {
-    return normalized;
+    return normalized.slice(0, 2);
   }
 
   const fallbackList = unique(
@@ -38,7 +38,7 @@ function normalizeQuestionAbilities(value, fallback = ['读']) {
       .filter((item) => REPORT_ABILITIES.includes(item))
   );
 
-  return fallbackList.length ? fallbackList : ['读'];
+  return (fallbackList.length ? fallbackList : ['读']).slice(0, 2);
 }
 
 module.exports = {

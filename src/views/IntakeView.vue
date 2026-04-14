@@ -19,7 +19,7 @@
         <div class="card-title"><h2>试卷亮点</h2><span class="tag">Step 2</span></div>
         <div class="stack">
           <div class="info-badge">🔊 听音选图 + 看图选词</div>
-          <div class="info-badge">🧩 组句闯关 + 单词跟读</div>
+          <div class="info-badge">🧩 组句闯关 + 跟读练习</div>
           <div class="info-badge">✍️ 拼写填空 + 图表报告</div>
         </div>
       </div>

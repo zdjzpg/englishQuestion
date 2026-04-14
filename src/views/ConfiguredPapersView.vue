@@ -93,7 +93,7 @@
           </template>
 
           <template v-else-if="column.key === 'actions'">
-            <a-space @click.stop>
+            <a-space @click.stop class="admin-papers-actions">
               <a-button
                 size="small"
                 :disabled="!canEditPaper(record)"
@@ -166,7 +166,7 @@ const columns = computed(() => {
     { title: '题数 / 总分', key: 'scoreSummary', width: 120 },
     { title: '答题记录', key: 'submissionCount', width: 110 },
     { title: '最近更新', key: 'updatedAt', width: 170 },
-    { title: '操作', key: 'actions', width: 160, align: 'right', fixed: 'right' }
+    { title: '操作', key: 'actions', width: 280, align: 'right', fixed: 'right' }
   ];
 
   if (state.authUser?.role === 'ADMIN') {

@@ -92,6 +92,7 @@ test('student overlays include delayed finish CTA and separate reward result car
   assert.match(newPaperViewSource, /admin-question-card-actions/);
   assert.match(configuredPapersViewSource, /编辑卷子/);
   assert.match(configuredPapersViewSource, /canEditPaper\(record\)/);
+  assert.match(configuredPapersViewSource, /admin-papers-actions/);
   assert.match(listenChooseImageSource, /question\.choices/);
   assert.match(listenChooseImageSource, /answer\.selected === choice\.id/);
   assert.doesNotMatch(listenChooseImageSource, /caption="先听一听，再选图片。"/);
@@ -100,5 +101,8 @@ test('student overlays include delayed finish CTA and separate reward result car
   assert.match(listenChooseLetterSource, /set-letter-slot/);
   assert.match(paperViewSource, /@set-letter-slot=/);
   assert.match(stylesSource, /\.image-upload-field\.compact \.image-upload-preview-img\s*\{/);
+  assert.match(stylesSource, /\.image-upload-field\.compact\s*\{/);
+  assert.match(stylesSource, /\.image-upload-actions\.compact\s*\{/);
   assert.match(stylesSource, /\.admin-question-card-actions\s*\{/);
+  assert.match(stylesSource, /\.admin-papers-actions\s*\{/);
 });

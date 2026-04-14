@@ -9,7 +9,7 @@
           <a-button @click="router.push({ name: 'papers' })">返回卷子列表</a-button>
           <a-button :disabled="!state.editingPaper.shareCode" @click="previewPaper">预览学生页</a-button>
           <a-button :disabled="!state.editingPaperId" @click="openAnswers">答题情况</a-button>
-          <a-button type="primary" :disabled="!editingScoreSummary.isValid" @click="savePaper">保存卷子</a-button>
+          <a-button type="primary" :loading="state.loading" :disabled="!editingScoreSummary.isValid" @click="savePaper">保存卷子</a-button>
         </a-space>
       </div>
 
@@ -134,7 +134,7 @@
 
           <a-space wrap>
             <a-button
-              v-for="(meta, type) in TYPE_META"
+              v-for="(meta, type) in visibleTypeMeta"
               :key="type"
               class="admin-type-button"
               @click="addQuestion(type)"
@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <div class="stack">
+      <div class="stack admin-editor-scroll">
         <div class="admin-section">
           <div class="admin-section-header">
             <div>
@@ -185,10 +185,12 @@
                   </a-form-item>
                   <a-form-item class="field-span-full" label="能力维度">
                     <a-select
-                      v-model:value="question.abilities"
+                      :value="question.abilities"
                       mode="multiple"
                       :options="abilityOptions"
+                      :max-tag-count="2"
                       placeholder="请选择题目所属的能力维度"
+                      @change="handleAbilityChange(question, $event)"
                     />
                   </a-form-item>
                 </div>
@@ -213,10 +215,10 @@
 
                 <template v-else-if="question.type === 'read_aloud'">
                   <div class="field-grid two">
-                    <a-form-item label="朗读内容">
+                    <a-form-item label="跟读内容">
                       <a-input v-model:value="question.phrase" />
                     </a-form-item>
-                    <a-form-item label="展示词">
+                    <a-form-item label="展示标题">
                       <a-input v-model:value="question.mascotWord" />
                     </a-form-item>
                   </div>
@@ -302,6 +304,7 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue';
 import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useExamStore } from '../store/examStore';
@@ -329,8 +332,12 @@ const {
 } = useExamStore();
 const { REPORT_ABILITIES, getDefaultAbilitiesForType } = questionAbilitiesUtils;
 const { createDefaultReportCommentConfig } = reportCommentsUtils;
+const HIDDEN_QUESTION_TYPES = ['sentence_sort', 'spell_blank', 'read_sentence_with_image', 'match_image_word'];
 
 const abilityOptions = REPORT_ABILITIES.map((value) => ({ label: value, value }));
+const visibleTypeMeta = computed(() => Object.fromEntries(
+  Object.entries(TYPE_META).filter(([type]) => !HIDDEN_QUESTION_TYPES.includes(type))
+));
 const caseModeOptions = [
   { label: '关闭，只选一个即可', value: false },
   { label: '开启，必须同时选择大小写', value: true }
@@ -380,6 +387,7 @@ async function savePaper() {
   }
   try {
     await saveEditingPaper();
+    message.success('卷子已保存');
     router.push({ name: 'papers' });
   } catch (error) {
     // store has already captured the user-facing error message
@@ -453,5 +461,9 @@ function questionAbilityLabel(question) {
     ? question.abilities
     : getDefaultAbilitiesForType(question.type);
   return labels.length ? `${labels.join(' / ')}能力` : '未配置能力';
+}
+
+function handleAbilityChange(question, values) {
+  question.abilities = Array.isArray(values) ? values.slice(0, 2) : [];
 }
 </script>

@@ -35,7 +35,7 @@ export const TYPE_META = {
   listen_follow_instruction: { label: '听音做指令', icon: '🎯', ability: '听' },
   look_choose_word: { label: '看图选词', icon: '🖼️', ability: '读' },
   sentence_sort: { label: '拖拽组句', icon: '🧩', ability: '读' },
-  read_aloud: { label: '单词跟读', icon: '🎙️', ability: '说' },
+  read_aloud: { label: '跟读练习', icon: '🎙️', ability: '说' },
   spell_blank: { label: '拼写填空', icon: '✍️', ability: '写' },
   listen_answer_question: { label: '听题口答', icon: '🗣️', ability: '说' },
   listen_choose_letter: { label: '听音选字母', icon: '🔠', ability: '听' },
@@ -170,7 +170,7 @@ export function getQuestionDefaults(type) {
     return withAbilities({ type }, { id: uid('q'), type, score: 15, prompt: '拖动单词组成句子。', sentence: 'I like apples' });
   }
   if (type === 'read_aloud') {
-    return withAbilities({ type }, { id: uid('q'), type, score: 20, prompt: '请跟着读。', phrase: 'banana', mascotWord: 'banana' });
+    return withAbilities({ type }, { id: uid('q'), type, score: 20, prompt: '请跟着读出内容。', phrase: 'banana', mascotWord: 'banana' });
   }
   if (type === 'listen_answer_question' || type === 'listen_choose_letter' || type === 'read_sentence_with_image' || type === 'match_image_word') {
     return withAbilities({ type }, { id: uid('q'), ...getNewQuestionTypeDefaults(type) });
