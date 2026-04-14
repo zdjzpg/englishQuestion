@@ -1,0 +1,87 @@
+const SAMPLE_INSTRUCTION_IMAGE = 'demo-boy';
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(value * 100) / 100));
+}
+
+function normalizeTarget(target = {}, index = 0) {
+  return {
+    id: target.id || `target_${index + 1}`,
+    label: String(target.label || `region ${index + 1}`).trim(),
+    x: clampPercent(toNumber(target.x)),
+    y: clampPercent(toNumber(target.y)),
+    width: clampPercent(toNumber(target.width)),
+    height: clampPercent(toNumber(target.height))
+  };
+}
+
+function parseTargets(targets) {
+  let parsedTargets = targets;
+  if (typeof parsedTargets === 'string') {
+    try {
+      parsedTargets = JSON.parse(parsedTargets);
+    } catch (error) {
+      parsedTargets = [];
+    }
+  }
+
+  return Array.isArray(parsedTargets)
+    ? parsedTargets.map((target, index) => normalizeTarget(target, index))
+    : [];
+}
+
+function createRectTarget(rect, bounds, index) {
+  const width = Math.max(1, toNumber(bounds?.width, 1));
+  const height = Math.max(1, toNumber(bounds?.height, 1));
+  return normalizeTarget({
+    id: `target_${index}`,
+    label: `region ${index}`,
+    x: (toNumber(rect?.left) / width) * 100,
+    y: (toNumber(rect?.top) / height) * 100,
+    width: (toNumber(rect?.width) / width) * 100,
+    height: (toNumber(rect?.height) / height) * 100
+  }, index - 1);
+}
+
+function pointInTarget(target, point) {
+  const x = toNumber(point?.x, -1);
+  const y = toNumber(point?.y, -1);
+  return x >= target.x
+    && y >= target.y
+    && x <= target.x + target.width
+    && y <= target.y + target.height;
+}
+
+function findTargetByPoint(targets, point) {
+  const list = parseTargets(targets);
+  const matched = list.find((target) => pointInTarget(target, point));
+  return matched ? matched.id : '';
+}
+
+function normalizeInstructionQuestion(question = {}) {
+  const targets = parseTargets(question.targets);
+  return {
+    id: question.id,
+    type: question.type,
+    score: toNumber(question.score),
+    prompt: question.prompt || '',
+    instructionText: question.instructionText || '',
+    imageUrl: (question.imageUrl || '').trim() || SAMPLE_INSTRUCTION_IMAGE,
+    autoPlay: question.autoPlay !== false,
+    targets,
+    correctTargetId: question.correctTargetId || (targets[0] ? targets[0].id : '')
+  };
+}
+
+module.exports = {
+  SAMPLE_INSTRUCTION_IMAGE,
+  createRectTarget,
+  parseTargets,
+  normalizeInstructionQuestion,
+  findTargetByPoint
+};
