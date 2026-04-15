@@ -30,8 +30,14 @@
 
         <div class="admin-main-layout">
           <header class="admin-topbar">
-            <div>
+            <div class="admin-topbar-main">
               <h1 class="admin-topbar-title">{{ pageMeta.title }}</h1>
+              <a-space v-if="isPaperEditor" wrap class="paper-editor-top-actions">
+                <a-button @click="router.push({ name: 'papers' })">返回卷子列表</a-button>
+                <a-button :disabled="!state.editingPaper.shareCode" @click="previewPaper">预览学生页</a-button>
+                <a-button :disabled="!state.editingPaperId" @click="openAnswers">答题情况</a-button>
+                <a-button type="primary" :loading="state.loading" @click="savePaper">保存卷子</a-button>
+              </a-space>
             </div>
 
             <a-space class="admin-session" :size="10">
@@ -65,6 +71,7 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue';
 import { FileTextOutlined, TeamOutlined } from '@ant-design/icons-vue';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -75,10 +82,11 @@ const { buildTeacherNavItems, getTeacherPageMeta, isTeacherRoute } = adminLayout
 
 const route = useRoute();
 const router = useRouter();
-const { state, logout } = useExamStore();
+const { state, logout, editingScoreSummary, saveEditingPaper } = useExamStore();
 
 const showTeacherShell = computed(() => isTeacherRoute(route));
 const pageMeta = computed(() => getTeacherPageMeta(String(route.name || '')));
+const isPaperEditor = computed(() => route.name === 'paper-new');
 const navItems = computed(() => buildTeacherNavItems({
   routeName: String(route.name || ''),
   routeFullPath: route.fullPath,
@@ -96,6 +104,34 @@ const userInitial = computed(() => {
 
 function navigate(target) {
   router.push(target);
+}
+
+async function savePaper() {
+  if (!editingScoreSummary.value.isValid) {
+    message.warning(editingScoreSummary.value.message || '卷子总分必须等于 100 分后才能保存。');
+    return;
+  }
+  try {
+    await saveEditingPaper();
+    message.success('卷子已保存');
+    router.push({ name: 'papers' });
+  } catch (error) {
+    // store already exposes the error state
+  }
+}
+
+function previewPaper() {
+  if (!state.editingPaper.shareCode) {
+    return;
+  }
+  router.push({ name: 'paper', params: { shareCode: state.editingPaper.shareCode } });
+}
+
+function openAnswers() {
+  if (!state.editingPaperId) {
+    return;
+  }
+  router.push({ name: 'answers', query: { paperId: state.editingPaperId } });
 }
 
 async function handleLogout() {

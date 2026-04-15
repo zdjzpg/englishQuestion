@@ -12,7 +12,9 @@
       <div v-if="question.imageUrl" class="look-word-image-card">
         <img :src="question.imageUrl" :alt="question.targetWord" class="question-asset-image" />
       </div>
-      <div v-else class="emoji-board sentence-image-fallback" style="font-size: 96px; margin-top: 18px;">{{ emojiForWord(question.targetWord) }}</div>
+      <div v-else class="emoji-board sentence-image-fallback word-fallback-board" style="font-size: 46px; margin-top: 18px;">
+        {{ question.targetWord || 'word' }}
+      </div>
       <div class="look-word-sticker-row">
         <button
           v-for="word in question.options"
@@ -30,8 +32,6 @@
 
 <script setup>
 /* global defineProps, defineEmits */
-import { emojiForWord } from '../../utils/content';
-
 defineProps({
   question: { type: Object, required: true },
   answer: { type: Object, required: true }

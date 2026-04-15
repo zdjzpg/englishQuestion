@@ -87,6 +87,8 @@ function normalizeQuestionPayload(question, index) {
       contentJson: JSON.stringify(buildQuestionContent(question, {
         instructionText: question.instructionText || '',
         imageUrl: question.imageUrl || '',
+        mode: question.mode || 'tap',
+        draggableObject: question.draggableObject || {},
         targets: Array.isArray(question.targets) ? question.targets : [],
         correctTargetId: question.correctTargetId || '',
         autoPlay: question.autoPlay !== false
@@ -101,6 +103,7 @@ function normalizeQuestionPayload(question, index) {
       prompt: base.prompt,
       score: base.score,
       contentJson: JSON.stringify(buildQuestionContent(question, {
+        imageUrl: question.imageUrl || '',
         choices: Array.isArray(question.choices) ? question.choices : [],
         correctChoiceId: question.correctChoiceId || '',
         targetWord: question.targetWord || ''

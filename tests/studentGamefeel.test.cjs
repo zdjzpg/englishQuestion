@@ -23,4 +23,15 @@ test('listen choose image and look choose word use more playful student-side str
   assert.match(stylesSource, /\.sticker-choice-card\s*\{/);
   assert.match(stylesSource, /\.look-word-stage\s*\{/);
   assert.match(stylesSource, /\.word-sticker\s*\{/);
+  assert.match(stylesSource, /\.choice-image\s*\{[\s\S]*object-fit:\s*contain;/);
+  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[\s\S]*border:/);
+  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[\s\S]*background:/);
+});
+
+test('look choose word fills the question stage with a larger visual focus', () => {
+  const stylesSource = read('src/styles.css');
+
+  assert.match(stylesSource, /\.look-word-stage\s*\{[\s\S]*min-height:\s*100%;/);
+  assert.match(stylesSource, /\.look-word-playboard\s*\{[\s\S]*flex:\s*1\s+1\s+auto;[\s\S]*width:\s*min\(100%,\s*980px\);[\s\S]*justify-content:\s*center;/);
+  assert.match(stylesSource, /\.look-word-image-card\s+\.question-asset-image\s*\{[\s\S]*max-height:\s*clamp\(220px,\s*42vh,\s*340px\);/);
 });

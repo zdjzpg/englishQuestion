@@ -14,14 +14,17 @@
           {{ modelValue ? replaceText : buttonText }}
         </a-button>
       </a-upload>
-      <a-button v-if="modelValue" danger @click="clearImage">删除图片</a-button>
+      <a-button v-if="modelValue" danger @click="clearImage">
+        <DeleteOutlined />
+        删除图片
+      </a-button>
     </a-space>
   </div>
 </template>
 
 <script setup>
 /* global defineProps, defineEmits */
-import { UploadOutlined } from '@ant-design/icons-vue';
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
 defineProps({

@@ -1,36 +1,26 @@
-﻿<template>
+<template>
   <div class="admin-page">
-    <section class="admin-section">
-      <div class="admin-section-header">
-        <div>
-          <h2>{{ isEdit ? '编辑卷子配置' : '新增卷子配置' }}</h2>
-        </div>
-        <a-space wrap>
-          <a-button @click="router.push({ name: 'papers' })">返回卷子列表</a-button>
-          <a-button :disabled="!state.editingPaper.shareCode" @click="previewPaper">预览学生页</a-button>
-          <a-button :disabled="!state.editingPaperId" @click="openAnswers">答题情况</a-button>
-          <a-button type="primary" :loading="state.loading" :disabled="!editingScoreSummary.isValid" @click="savePaper">保存卷子</a-button>
-        </a-space>
-      </div>
-
-      <div class="admin-kpis compact">
-        <article class="admin-kpi">
-          <span class="admin-kpi-label">题目数量</span>
-          <strong class="admin-kpi-value">{{ state.editingPaper.questions.length }}</strong>
-        </article>
-        <article class="admin-kpi">
-          <span class="admin-kpi-label">当前总分</span>
-          <strong class="admin-kpi-value">{{ editingTotalScore }}</strong>
-        </article>
-        <article class="admin-kpi">
-          <span class="admin-kpi-label">分享码</span>
-          <strong class="admin-kpi-value text-lg">{{ state.editingPaper.shareCode || '-' }}</strong>
-        </article>
-      </div>
-    </section>
-
     <section class="admin-editor-grid">
       <div class="stack">
+        <div class="admin-section">
+          <div class="admin-section-header">
+            <div>
+              <h2>添加题型</h2>
+            </div>
+          </div>
+
+          <a-space wrap>
+            <a-button
+              v-for="(meta, type) in visibleTypeMeta"
+              :key="type"
+              class="admin-type-button"
+              @click="addQuestion(type)"
+            >
+              {{ meta.icon }} {{ meta.label }}
+            </a-button>
+          </a-space>
+        </div>
+
         <div class="admin-section">
           <div class="admin-section-header">
             <div>
@@ -125,24 +115,6 @@
           </a-form>
         </div>
 
-        <div class="admin-section">
-          <div class="admin-section-header">
-            <div>
-              <h2>添加题型</h2>
-            </div>
-          </div>
-
-          <a-space wrap>
-            <a-button
-              v-for="(meta, type) in visibleTypeMeta"
-              :key="type"
-              class="admin-type-button"
-              @click="addQuestion(type)"
-            >
-              {{ meta.icon }} {{ meta.label }}
-            </a-button>
-          </a-space>
-        </div>
       </div>
 
       <div class="stack">
@@ -304,9 +276,8 @@
 </template>
 
 <script setup>
-import { message } from 'ant-design-vue';
 import { computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useExamStore } from '../store/examStore';
 import FollowInstructionEditor from '../components/editors/FollowInstructionEditor.vue';
 import ImageUploadField from '../components/editors/ImageUploadField.vue';
@@ -317,15 +288,11 @@ import reportCommentsUtils from '../shared/reportComments';
 import { uid } from '../utils/content';
 
 const route = useRoute();
-const router = useRouter();
 const {
   state,
   TYPE_META,
-  editingTotalScore,
-  editingScoreSummary,
   createNewPaper,
   loadPaperForEdit,
-  saveEditingPaper,
   addQuestion,
   duplicateQuestion,
   removeQuestion
@@ -343,7 +310,6 @@ const caseModeOptions = [
   { label: '开启，必须同时选择大小写', value: true }
 ];
 
-const isEdit = computed(() => typeof route.query.id === 'string' && route.query.id.length > 0);
 const scoreAlert = computed(() => {
   if (!state.editingPaper.questions.length) {
     return {
@@ -351,15 +317,9 @@ const scoreAlert = computed(() => {
       message: '当前是空白卷子，请先添加题型并把总分配置到 100 分。'
     };
   }
-  if (editingScoreSummary.value.isValid) {
-    return {
-      type: 'success',
-      message: '总分校验通过，可保存卷子。'
-    };
-  }
   return {
-    type: 'error',
-    message: editingScoreSummary.value.message
+    type: 'success',
+    message: '请在编辑卷子顶部操作区里保存当前配置。'
   };
 });
 
@@ -369,7 +329,6 @@ async function syncEditingPaper() {
     const loaded = await loadPaperForEdit(paperId);
     if (!loaded) {
       window.alert(state.apiError || '该卷子当前不能编辑。');
-      router.replace({ name: 'papers' });
     }
   } else {
     createNewPaper();
@@ -380,33 +339,6 @@ onMounted(syncEditingPaper);
 watch(() => route.query.id, () => {
   syncEditingPaper();
 });
-
-async function savePaper() {
-  if (!editingScoreSummary.value.isValid) {
-    return;
-  }
-  try {
-    await saveEditingPaper();
-    message.success('卷子已保存');
-    router.push({ name: 'papers' });
-  } catch (error) {
-    // store has already captured the user-facing error message
-  }
-}
-
-function previewPaper() {
-  if (!state.editingPaper.shareCode) {
-    return;
-  }
-  router.push({ name: 'paper', params: { shareCode: state.editingPaper.shareCode } });
-}
-
-function openAnswers() {
-  if (!state.editingPaperId) {
-    return;
-  }
-  router.push({ name: 'answers', query: { paperId: state.editingPaperId } });
-}
 
 function patchQuestion(question, patch) {
   Object.assign(question, patch);

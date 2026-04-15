@@ -69,6 +69,7 @@ const actionsRef = ref(null);
 const resultCardRef = ref(null);
 const rotation = ref(0);
 const colors = ['#58a6ff', '#7ee081', '#ffd95d', '#ff9c5b', '#ff76ae', '#7d9cff'];
+const randomBetween = gsap.utils.random;
 
 const wheelStyle = computed(() => {
   const step = 360 / Math.max(props.items.length, 1);
@@ -84,32 +85,34 @@ const wheelStyle = computed(() => {
 });
 
 onMounted(() => {
-  gsap.set([titleWrapRef.value, wheelRef.value, actionsRef.value], { opacity: 0, y: 24 });
-  gsap.set(cardRef.value, { opacity: 0, scale: 0.82, y: 26 });
-  gsap.set(resultCardRef.value, { opacity: 0, scale: 0.7, y: 18 });
+  gsap.set([titleWrapRef.value, wheelRef.value, actionsRef.value], { opacity: 0, y: 62, x: () => randomBetween(-24, 24) });
+  gsap.set(cardRef.value, { opacity: 0, scale: 0.64, y: 110, rotate: -8 });
+  gsap.set(resultCardRef.value, { opacity: 0, scale: 0.38, y: 84, rotate: -12 });
 
   gsap.timeline()
-    .to(overlayRef.value, { opacity: 1, duration: 0.18 })
-    .to(cardRef.value, { opacity: 1, scale: 1, y: 0, duration: 0.7, ease: 'back.out(1.2)' }, 0.05)
-    .to(titleWrapRef.value, { opacity: 1, y: 0, duration: 0.42, ease: 'power2.out' }, 0.22)
-    .to(wheelRef.value, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.34)
-    .to(actionsRef.value, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.48);
+    .to(overlayRef.value, { opacity: 1, duration: 0.24 })
+    .to(cardRef.value, { opacity: 1, scale: 1, y: 0, rotate: 0, duration: 0.95, ease: 'back.out(2)' }, 0.04)
+    .to(titleWrapRef.value, { opacity: 1, x: 0, y: 0, duration: 0.66, ease: 'back.out(2.1)' }, 0.26)
+    .to(wheelRef.value, { opacity: 1, x: 0, y: 0, duration: 0.72, ease: 'back.out(2.1)' }, 0.38)
+    .to(actionsRef.value, { opacity: 1, x: 0, y: 0, duration: 0.62, ease: 'back.out(2)' }, 0.52);
 
   gsap.to(pointerRef.value, {
-    y: '-=5',
-    duration: 0.55,
+    y: () => randomBetween(-14, -5),
+    rotate: () => randomBetween(-8, 8),
+    duration: () => randomBetween(0.42, 0.86),
     repeat: -1,
     yoyo: true,
-    ease: 'sine.inOut'
+    repeatRefresh: true,
+    ease: 'power1.inOut'
   });
 });
 
 watch(() => props.drawing, (value) => {
   if (value) {
     gsap.to(wheelRef.value, {
-      rotate: `+=1080`,
-      duration: 1.8,
-      ease: 'power2.inOut'
+      rotate: `+=1440`,
+      duration: 2.2,
+      ease: 'power3.inOut'
     });
   }
 });
@@ -124,26 +127,28 @@ watch(() => props.result, (value) => {
   rotation.value += 1800 + (360 - target - step / 2);
   gsap.to(wheelRef.value, {
     rotate: rotation.value,
-    duration: 3.6,
+    duration: 4.2,
     ease: 'power4.out',
     onComplete: () => {
       const fire = confetti.create(confettiCanvas.value, { resize: true, useWorker: true });
       fire({
-        particleCount: 140,
-        spread: 100,
-        startVelocity: 48,
+        particleCount: 220,
+        spread: 128,
+        startVelocity: 62,
+        scalar: 1.16,
         origin: { x: 0.5, y: 0.55 },
         colors: ['#5ec8ff', '#ffd55d', '#ff8db6', '#7cde86']
       });
-      gsap.fromTo(cardRef.value, { scale: 1 }, { scale: 1.03, duration: 0.25, yoyo: true, repeat: 1, ease: 'power1.inOut' });
+      gsap.fromTo(cardRef.value, { scale: 1 }, { scale: 1.08, duration: 0.32, yoyo: true, repeat: 1, ease: 'power1.inOut' });
       if (resultCardRef.value) {
-        gsap.fromTo(resultCardRef.value, { opacity: 0, scale: 0.72, y: 26 }, {
+        gsap.fromTo(resultCardRef.value, { opacity: 0, scale: 0.36, y: 92, rotate: -10 }, {
           opacity: 1,
           scale: 1,
           y: 0,
-          duration: 0.6,
-          ease: 'back.out(1.35)',
-          delay: 0.15
+          rotate: 0,
+          duration: 0.94,
+          ease: 'back.out(2.2)',
+          delay: 0.12
         });
       }
     }

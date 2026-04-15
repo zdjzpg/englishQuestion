@@ -84,8 +84,16 @@ function buildRecordItems(paper, answers) {
     } else if (question.type === 'listen_follow_instruction') {
       const selectedTarget = (question.targets || []).find((item) => item.id === answer.selected);
       const correctTarget = (question.targets || []).find((item) => item.id === question.correctTargetId);
-      correctText = correctTarget?.label || question.correctTargetId || '未配置';
-      studentText = selectedTarget?.label || answer.selected || '未作答';
+      if (question.mode === 'drag_place') {
+        const objectLabel = question.draggableObject?.label || 'object';
+        correctText = `${objectLabel} -> ${correctTarget?.label || question.correctTargetId || '未配置'}`;
+        studentText = answer.selected
+          ? `${objectLabel} -> ${selectedTarget?.label || answer.selected}`
+          : '未作答';
+      } else {
+        correctText = correctTarget?.label || question.correctTargetId || '未配置';
+        studentText = selectedTarget?.label || answer.selected || '未作答';
+      }
       gained = answer.selected === question.correctTargetId ? question.score : 0;
     } else if (question.type === 'look_choose_word') {
       correctText = question.targetWord;
@@ -227,6 +235,7 @@ function setAuthSession({ token, user }) {
 
 const audioScoreTimers = new Map();
 let activeSpeechToken = 0;
+let playbackFallbackTimer = null;
 
 let storeApi;
 
@@ -296,6 +305,10 @@ export function useExamStore() {
   }
 
   function stopSpeakingVisuals() {
+    if (playbackFallbackTimer) {
+      window.clearTimeout(playbackFallbackTimer);
+      playbackFallbackTimer = null;
+    }
     Object.keys(state.audioUi).forEach((questionId) => {
       ensureAudioUi(questionId).isPlaying = false;
     });
@@ -876,6 +889,13 @@ export function useExamStore() {
         utter.voice = selectedVoice;
         utter.lang = selectedVoice.lang || 'en-US';
       }
+      const safeTextLength = Math.max(1, String(text || '').length);
+      const fallbackDuration = Math.max(2200, Math.min(9000, safeTextLength * 240 + 1800));
+      playbackFallbackTimer = window.setTimeout(() => {
+        if (speechToken === activeSpeechToken) {
+          stopSpeakingVisuals();
+        }
+      }, fallbackDuration);
       utter.onend = () => {
         if (speechToken === activeSpeechToken) {
           stopSpeakingVisuals();

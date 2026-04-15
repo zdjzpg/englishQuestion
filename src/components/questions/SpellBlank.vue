@@ -9,7 +9,7 @@
       <button class="audio-bubble" @click="$emit('speak', question.answerWord)">🔊 听单词</button>
     </div>
     <div class="spelling-board">
-      <div class="emoji-board" style="font-size:96px;">{{ emojiForWord(question.answerWord) }}</div>
+      <div class="emoji-board word-fallback-board" style="font-size:46px;">{{ question.answerWord || 'word' }}</div>
       <div class="letter-row">
         <div
           v-for="(letter, index) in maskedLetters"
@@ -31,7 +31,6 @@
 <script setup>
 /* global defineProps, defineEmits */
 import { computed } from 'vue';
-import { emojiForWord } from '../../utils/content';
 
 const props = defineProps({
   question: { type: Object, required: true },

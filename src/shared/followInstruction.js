@@ -1,4 +1,14 @@
 const SAMPLE_INSTRUCTION_IMAGE = 'demo-boy';
+const INSTRUCTION_MODE_TAP = 'tap';
+const INSTRUCTION_MODE_DRAG_PLACE = 'drag_place';
+const DEFAULT_DRAGGABLE_OBJECT = Object.freeze({
+  id: 'object_1',
+  label: 'apple',
+  imageUrl: '',
+  startX: 14,
+  startY: 70,
+  size: 18
+});
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -7,6 +17,21 @@ function toNumber(value, fallback = 0) {
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, Math.round(value * 100) / 100));
+}
+
+function normalizeInstructionMode(mode) {
+  return mode === INSTRUCTION_MODE_DRAG_PLACE ? INSTRUCTION_MODE_DRAG_PLACE : INSTRUCTION_MODE_TAP;
+}
+
+function normalizeDraggableObject(draggableObject = {}) {
+  return {
+    id: String(draggableObject.id || DEFAULT_DRAGGABLE_OBJECT.id).trim() || DEFAULT_DRAGGABLE_OBJECT.id,
+    label: String(draggableObject.label || DEFAULT_DRAGGABLE_OBJECT.label).trim() || DEFAULT_DRAGGABLE_OBJECT.label,
+    imageUrl: String(draggableObject.imageUrl || '').trim(),
+    startX: clampPercent(toNumber(draggableObject.startX, DEFAULT_DRAGGABLE_OBJECT.startX)),
+    startY: clampPercent(toNumber(draggableObject.startY, DEFAULT_DRAGGABLE_OBJECT.startY)),
+    size: clampPercent(toNumber(draggableObject.size, DEFAULT_DRAGGABLE_OBJECT.size))
+  };
 }
 
 function normalizeTarget(target = {}, index = 0) {
@@ -71,7 +96,9 @@ function normalizeInstructionQuestion(question = {}) {
     score: toNumber(question.score),
     prompt: question.prompt || '',
     instructionText: question.instructionText || '',
-    imageUrl: (question.imageUrl || '').trim() || SAMPLE_INSTRUCTION_IMAGE,
+    imageUrl: (question.imageUrl || '').trim(),
+    mode: normalizeInstructionMode(question.mode),
+    draggableObject: normalizeDraggableObject(question.draggableObject),
     autoPlay: question.autoPlay !== false,
     targets,
     correctTargetId: question.correctTargetId || (targets[0] ? targets[0].id : '')
@@ -79,9 +106,14 @@ function normalizeInstructionQuestion(question = {}) {
 }
 
 module.exports = {
+  DEFAULT_DRAGGABLE_OBJECT,
+  INSTRUCTION_MODE_DRAG_PLACE,
+  INSTRUCTION_MODE_TAP,
   SAMPLE_INSTRUCTION_IMAGE,
   createRectTarget,
   parseTargets,
+  normalizeDraggableObject,
+  normalizeInstructionMode,
   normalizeInstructionQuestion,
   findTargetByPoint
 };

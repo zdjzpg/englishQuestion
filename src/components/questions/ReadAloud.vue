@@ -4,17 +4,20 @@
       <div>
         <span class="tag">口语关卡</span>
         <h2 class="question-title">{{ question.prompt }}</h2>
-        <div class="question-helper">先听示范，再开始跟读。生产版这里接语音评分 API。</div>
+        <div class="question-helper">先听示范，再开始跟读。</div>
       </div>
       <button class="audio-bubble" @click="$emit('speak', { text: question.phrase, questionId: question.id, kind: 'demo_playing' })">🔊 听示范</button>
     </div>
     <div class="read-panel">
-      <div class="mascot-card read-buddy-card">
-        <h3 style="margin: 12px 0 6px; font-size: 30px;">{{ question.phrase }}</h3>
-        <p class="muted">大声、完整、清楚地读出来。</p>
+      <div class="mascot-card read-buddy-card read-word-card">
+        <div class="read-word-badge">跟读词卡</div>
+        <h3 class="read-phrase-pop">{{ question.phrase }}</h3>
+        <p class="read-word-tip">大声、完整、清楚地读出来。</p>
       </div>
       <div class="recorder-box">
-        <div class="score-ring" :style="{ '--value': Math.max(answer.autoScore || 0, 8) }"><span>{{ answer.autoScore || 0 }}</span></div>
+        <div class="read-status-pill" :class="{ recording: audioState.readAloudState === 'recording' }">
+          {{ audioState.readAloudState === 'recording' ? '正在听你读...' : '准备好就点击开始跟读' }}
+        </div>
         <div class="wave" :class="{ 'wave-passive': audioState.readAloudState !== 'recording' }">
           <span
             v-for="bar in waveBars"
@@ -23,10 +26,14 @@
           ></span>
         </div>
         <div class="footer-actions">
-          <button class="btn btn-secondary" @click="$emit('start-speech', question.id, question.phrase)">
-            {{ audioState.readAloudState === 'recording' ? '录音中...' : '开始跟读' }}
+          <button
+            class="btn btn-primary read-start-btn"
+            :class="{ recording: audioState.readAloudState === 'recording' }"
+            @click="$emit('start-speech', question.id, question.phrase)"
+          >
+            {{ audioState.readAloudState === 'recording' ? '🎙️ 录音中...' : '🎤 开始跟读' }}
           </button>
-          <button class="btn btn-ghost" @click="$emit('mock-score', question.id)">使用演示评分</button>
+          <button class="btn btn-ghost read-demo-btn" @click="$emit('mock-score', question.id)">使用演示结果</button>
         </div>
         <div class="field" style="margin-top: 18px;">
           <label>识别文本 / AI 返回</label>

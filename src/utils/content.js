@@ -8,6 +8,7 @@ import reportCommentsUtils from '../shared/reportComments';
 import studentExperienceUtils from '../shared/studentExperience';
 
 const {
+  DEFAULT_DRAGGABLE_OBJECT,
   SAMPLE_INSTRUCTION_IMAGE,
   normalizeInstructionQuestion
 } = followInstructionUtils;
@@ -43,14 +44,6 @@ export const TYPE_META = {
   match_image_word: { label: '图片连线', icon: '🧷', ability: '读' }
 };
 
-export const EMOJI_MAP = {
-  tiger: '🐯', monkey: '🐵', bear: '🐻', crocodile: '🐊', elephant: '🐘', lion: '🦁',
-  dog: '🐶', cat: '🐱', rabbit: '🐰', pencil: '✏️', pen: '🖊️', ruler: '📏', book: '📚',
-  schoolbag: '🎒', backpack: '🎒', banana: '🍌', apple: '🍎', orange: '🍊', pear: '🍐',
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', fish: '🐟', cake: '🍰', milk: '🥛',
-  game: '🎮', ball: '⚽', duck: '🦆', bird: '🐦'
-};
-
 export const INSTRUCTION_IMAGE_MAP = {
   [SAMPLE_INSTRUCTION_IMAGE]: demoFollowInstructionBoy
 };
@@ -84,13 +77,9 @@ export function safeWord(word) {
   return (word || '').trim().toLowerCase();
 }
 
-export function emojiForWord(word) {
-  return EMOJI_MAP[safeWord(word)] || '🌟';
-}
-
 export function resolveInstructionImage(imageUrl) {
   const key = (imageUrl || '').trim();
-  return INSTRUCTION_IMAGE_MAP[key] || key || demoFollowInstructionBoy;
+  return INSTRUCTION_IMAGE_MAP[key] || key;
 }
 
 export function encodeConfig(config) {
@@ -147,9 +136,11 @@ export function getQuestionDefaults(type) {
       id: uid('q'),
       type,
       score: 10,
-      prompt: '听一听，点击正确部位。',
+      prompt: '听一听，拖动物品完成指令。',
       instructionText: 'Touch your eyes',
-      imageUrl: SAMPLE_INSTRUCTION_IMAGE,
+      imageUrl: '',
+      mode: 'drag_place',
+      draggableObject: { ...DEFAULT_DRAGGABLE_OBJECT },
       autoPlay: true,
       correctTargetId: '',
       targets: []

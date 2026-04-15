@@ -89,7 +89,7 @@
         <div class="question-topline">
           <div>
             <div class="tag">第 {{ state.currentIndex + 1 }} / {{ state.currentPaper.questions.length }} 题</div>
-            <h2 style="margin: 12px 0 8px; font-size: 28px">{{ state.currentPaper.examTitle }}</h2>
+            <h2 class="exam-paper-title">{{ state.currentPaper.examTitle }}</h2>
             <div class="muted">{{ state.student.name || '未填写姓名' }} · {{ state.student.age || '-' }}岁 · {{ state.student.school || '-' }} · {{ state.student.grade || '-' }}</div>
           </div>
           <div class="info-badge">当前题分值 {{ currentQuestion.score }}</div>
@@ -101,26 +101,35 @@
 
       <div class="exam-layout">
         <div class="question-stage">
-          <component
-            :is="componentMap[currentQuestion.type]"
-            :question="currentQuestion"
-            :answer="currentAnswer"
-            :audio-state="getQuestionAudioState(currentQuestion.id)"
-            :wave-bars="state.waveBars"
-            @select="selectOption"
-            @speak="speak"
-            @add-token="addToken"
-            @remove-slot="removeSlot"
-            @toggle-letter="toggleLetterSelection"
-            @set-letter-slot="setLetterSlot"
-            @clear-letter-slot="clearLetterSlot"
-            @set-match="setMatch"
-            @update-input="updateSpelling"
-            @fill-answer="fillAnswer"
-            @start-speech="runSpeechRecognition"
-            @mock-score="runMockSpeechScore"
-            @mock-answer="runMockKeywordAnswer"
-          />
+          <div ref="questionFitViewportRef" class="question-fit-viewport">
+            <div
+              ref="questionFitContentRef"
+              class="question-fit-content"
+              :style="{ '--question-fit-scale': String(questionScale) }"
+            >
+              <component
+                :is="componentMap[currentQuestion.type]"
+                :key="currentQuestion.id"
+                :question="currentQuestion"
+                :answer="currentAnswer"
+                :audio-state="getQuestionAudioState(currentQuestion.id)"
+                :wave-bars="state.waveBars"
+                @select="selectOption"
+                @speak="speak"
+                @add-token="addToken"
+                @remove-slot="removeSlot"
+                @toggle-letter="toggleLetterSelection"
+                @set-letter-slot="setLetterSlot"
+                @clear-letter-slot="clearLetterSlot"
+                @set-match="setMatch"
+                @update-input="updateSpelling"
+                @fill-answer="fillAnswer"
+                @start-speech="runSpeechRecognition"
+                @mock-score="runMockSpeechScore"
+                @mock-answer="runMockKeywordAnswer"
+              />
+            </div>
+          </div>
         </div>
         <div class="footer-actions">
           <button class="btn btn-ghost" :disabled="state.currentIndex === 0" @click="previousQuestion">上一题</button>
@@ -197,7 +206,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { toPng } from 'html-to-image';
 import { useRouter } from 'vue-router';
 import ListenAnswerQuestion from '../components/questions/ListenAnswerQuestion.vue';
@@ -215,11 +224,13 @@ import PlaybackAnimalOverlay from '../components/shared/PlaybackAnimalOverlay.vu
 import RewardWheelOverlay from '../components/shared/RewardWheelOverlay.vue';
 import StudentFinishOverlay from '../components/shared/StudentFinishOverlay.vue';
 import StudentOpeningOverlay from '../components/shared/StudentOpeningOverlay.vue';
+import layoutScaleUtils from '../shared/layoutScale';
 import questionAbilitiesUtils from '../shared/questionAbilities';
 import { useExamStore } from '../store/examStore';
 
 const router = useRouter();
 const { REPORT_ABILITIES } = questionAbilitiesUtils;
+const { calculateContainScale } = layoutScaleUtils;
 const {
   state,
   currentQuestion,
@@ -281,10 +292,76 @@ const reportAbilityItems = computed(() => REPORT_ABILITIES
     };
   }));
 const reportCaptureRef = ref(null);
+const questionFitViewportRef = ref(null);
+const questionFitContentRef = ref(null);
+const questionScale = ref(1);
 const hasReportComments = computed(() => Boolean(
   state.report?.comments?.opening || state.report?.comments?.middle || state.report?.comments?.closing
 ));
 let finishTimer = null;
+let scaleFrameId = null;
+let scaleObserver = null;
+
+const EXAM_BODY_CLASS = 'exam-single-screen';
+
+function setExamBodyClass(active) {
+  document.body.classList.toggle(EXAM_BODY_CLASS, active);
+}
+
+function clearScaleObserver() {
+  if (scaleObserver) {
+    scaleObserver.disconnect();
+    scaleObserver = null;
+  }
+}
+
+async function updateQuestionScale() {
+  if (!isExamState.value || !questionFitViewportRef.value || !questionFitContentRef.value) {
+    questionScale.value = 1;
+    return;
+  }
+
+  questionScale.value = 1;
+  await nextTick();
+
+  const viewportEl = questionFitViewportRef.value;
+  const contentEl = questionFitContentRef.value;
+  if (!viewportEl || !contentEl) {
+    return;
+  }
+
+  const nextScale = calculateContainScale({
+    viewportWidth: viewportEl.clientWidth,
+    viewportHeight: viewportEl.clientHeight,
+    contentWidth: contentEl.scrollWidth,
+    contentHeight: contentEl.scrollHeight
+  });
+
+  questionScale.value = nextScale;
+}
+
+function scheduleQuestionScale() {
+  if (scaleFrameId) {
+    window.cancelAnimationFrame(scaleFrameId);
+  }
+  scaleFrameId = window.requestAnimationFrame(() => {
+    scaleFrameId = null;
+    void updateQuestionScale();
+  });
+}
+
+async function bindScaleObserver() {
+  clearScaleObserver();
+  await nextTick();
+  if (!isExamState.value || !questionFitViewportRef.value || !questionFitContentRef.value || typeof ResizeObserver === 'undefined') {
+    return;
+  }
+  scaleObserver = new ResizeObserver(() => {
+    scheduleQuestionScale();
+  });
+  scaleObserver.observe(questionFitViewportRef.value);
+  scaleObserver.observe(questionFitContentRef.value);
+}
 
 function beginExam() {
   intakeAttempted.value = true;
@@ -327,10 +404,41 @@ watch(() => state.finishAnimationVisible, (value) => {
   }
 });
 
+watch(isExamState, async (active) => {
+  setExamBodyClass(active);
+  if (!active) {
+    questionScale.value = 1;
+    clearScaleObserver();
+    return;
+  }
+  await bindScaleObserver();
+  scheduleQuestionScale();
+}, { immediate: true });
+
+watch(() => currentQuestion.value?.id, async () => {
+  if (!isExamState.value) {
+    return;
+  }
+  await bindScaleObserver();
+  scheduleQuestionScale();
+});
+
+onMounted(() => {
+  window.addEventListener('resize', scheduleQuestionScale);
+  scheduleQuestionScale();
+});
+
 onBeforeUnmount(() => {
   if (finishTimer) {
     window.clearTimeout(finishTimer);
   }
+  if (scaleFrameId) {
+    window.cancelAnimationFrame(scaleFrameId);
+    scaleFrameId = null;
+  }
+  clearScaleObserver();
+  setExamBodyClass(false);
+  window.removeEventListener('resize', scheduleQuestionScale);
 });
 </script>
 

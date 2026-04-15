@@ -101,6 +101,7 @@
               >
                 编辑卷子
               </a-button>
+              <a-button size="small" @click="copyPaperAndRefresh(record.id)">复制卷子</a-button>
               <a-button type="primary" size="small" @click="openAnswers(record.id)">答题情况</a-button>
               <a-dropdown trigger="click">
                 <a-button size="small">
@@ -109,7 +110,6 @@
                 </a-button>
                 <template #overlay>
                   <a-menu @click="({ key }) => handleMoreAction(key, record)">
-                    <a-menu-item key="copy">复制卷子</a-menu-item>
                     <a-menu-item key="code">复制分享码</a-menu-item>
                     <a-menu-item key="link">复制分享链接</a-menu-item>
                     <a-menu-item key="preview">预览学生页</a-menu-item>
@@ -166,7 +166,7 @@ const columns = computed(() => {
     { title: '题数 / 总分', key: 'scoreSummary', width: 120 },
     { title: '答题记录', key: 'submissionCount', width: 110 },
     { title: '最近更新', key: 'updatedAt', width: 170 },
-    { title: '操作', key: 'actions', width: 280, align: 'right', fixed: 'right' }
+    { title: '操作', key: 'actions', width: 360, align: 'right', fixed: 'right' }
   ];
 
   if (state.authUser?.role === 'ADMIN') {
@@ -242,9 +242,7 @@ async function copyShareLink(shareCode) {
 }
 
 function handleMoreAction(actionKey, paper) {
-  if (actionKey === 'copy') {
-    copyPaperAndRefresh(paper.id);
-  } else if (actionKey === 'code') {
+  if (actionKey === 'code') {
     copyShareCode(paper.shareCode);
   } else if (actionKey === 'link') {
     copyShareLink(paper.shareCode);

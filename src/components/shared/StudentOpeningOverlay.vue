@@ -72,6 +72,7 @@ const buttonWrapRef = ref(null);
 const buttonRef = ref(null);
 const titleChars = computed(() => Array.from(props.title || ''));
 const loopTweens = [];
+const randomBetween = gsap.utils.random;
 
 const sparkles = [
   { id: 's1', style: { top: '14%', left: '12%' } },
@@ -83,32 +84,59 @@ const sparkles = [
 ];
 
 onMounted(() => {
+  gsap.set(overlayRef.value, { opacity: 0 });
   gsap.set([subtitleRef.value, buttonWrapRef.value], { opacity: 0, y: 36 });
-  gsap.set(backRef.value, { opacity: 0, scale: 0.9, rotate: -10, x: -90, y: 24 });
-  gsap.set(shadowRef.value, { opacity: 0, scaleX: 0.72, scaleY: 0.8 });
+  gsap.set(backRef.value, { opacity: 0, scale: 0.76, rotate: -16, x: -180, y: 52 });
+  gsap.set(shadowRef.value, { opacity: 0, scaleX: 0.38, scaleY: 0.64, y: 30 });
   gsap.set(frontRef.value, {
     opacity: 0,
-    scale: 0.82,
-    rotateY: -48,
-    rotate: -4,
-    x: 130,
-    y: 38,
+    scale: 0.68,
+    rotateY: -72,
+    rotate: -12,
+    x: 240,
+    y: 86,
     transformOrigin: 'left center'
   });
-  gsap.set(frameRef.value, { opacity: 0, scale: 0.94, y: 24 });
-  gsap.set('.opening-title-char', { opacity: 0, y: 34, rotate: -8, scale: 0.92 });
-  gsap.set('.storybook-dust .student-sparkle', { opacity: 0, scale: 0.4, y: 16 });
-  gsap.set('.opening-glow', { opacity: 0, scale: 0.68 });
-  gsap.set('.storybook-ornament', { opacity: 0, scale: 0.86 });
+  gsap.set(frameRef.value, { opacity: 0, scale: 0.84, y: 72, rotate: -2 });
+  gsap.set('.opening-title-char', {
+    opacity: 0,
+    x: () => randomBetween(-120, 120),
+    y: () => randomBetween(90, 200),
+    rotate: () => randomBetween(-30, 30),
+    scale: () => randomBetween(0.56, 1.26),
+    filter: 'blur(10px)'
+  });
+  gsap.set('.storybook-dust .student-sparkle', {
+    opacity: 0,
+    x: () => randomBetween(-42, 42),
+    y: () => randomBetween(20, 70),
+    scale: () => randomBetween(0.2, 0.85),
+    rotate: () => randomBetween(-26, 26)
+  });
+  gsap.set('.opening-glow', { opacity: 0, scale: 0.4 });
+  gsap.set('.storybook-ornament', {
+    opacity: 0,
+    y: () => randomBetween(20, 80),
+    rotate: () => randomBetween(-18, 18),
+    scale: () => randomBetween(0.68, 1.12)
+  });
 
   const timeline = gsap.timeline();
   timeline
-    .to(overlayRef.value, { opacity: 1, duration: 0.2 })
-    .to(frameRef.value, { opacity: 1, scale: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 0.04)
-    .to('.opening-glow', { opacity: 1, scale: 1, duration: 1.25, ease: 'power2.out' }, 0)
-    .to('.storybook-ornament', { opacity: 1, scale: 1, duration: 0.7, stagger: 0.1, ease: 'power2.out' }, 0.14)
-    .to(backRef.value, { opacity: 1, scale: 1, rotate: -4, x: -24, y: 8, duration: 0.82, ease: 'power3.out' }, 0.12)
-    .to(shadowRef.value, { opacity: 1, scaleX: 1, scaleY: 1, duration: 0.74, ease: 'power2.out' }, 0.18)
+    .to(overlayRef.value, { opacity: 1, duration: 0.26 })
+    .to(frameRef.value, { opacity: 1, scale: 1, y: 0, rotate: 0, duration: 1.2, ease: 'expo.out' }, 0.04)
+    .to('.opening-glow', { opacity: 1, scale: 1, duration: 1.45, ease: 'expo.out' }, 0)
+    .to('.storybook-ornament', {
+      opacity: 1,
+      y: 0,
+      rotate: 0,
+      scale: 1,
+      duration: 0.88,
+      stagger: 0.12,
+      ease: 'back.out(2.2)'
+    }, 0.2)
+    .to(backRef.value, { opacity: 1, scale: 1, rotate: -5, x: -46, y: 14, duration: 1.02, ease: 'expo.out' }, 0.14)
+    .to(shadowRef.value, { opacity: 1, scaleX: 1, scaleY: 1, y: 0, duration: 0.98, ease: 'expo.out' }, 0.2)
     .to(frontRef.value, {
       opacity: 1,
       scale: 1,
@@ -116,79 +144,94 @@ onMounted(() => {
       rotate: 0,
       x: 0,
       y: 0,
-      duration: 1.02,
+      duration: 1.2,
       ease: 'expo.out'
-    }, 0.22)
+    }, 0.24)
     .to('.storybook-dust .student-sparkle', {
       opacity: 1,
+      x: 0,
       scale: 1,
       y: 0,
-      duration: 0.55,
-      stagger: 0.06,
-      ease: 'back.out(2)'
-    }, 0.44)
+      rotate: 0,
+      duration: 0.7,
+      stagger: 0.08,
+      ease: 'back.out(2.4)'
+    }, 0.46)
     .to('.opening-title-char', {
       opacity: 1,
+      x: 0,
       y: 0,
       rotate: 0,
       scale: 1,
-      duration: 0.52,
-      stagger: 0.03,
-      ease: 'power3.out'
-    }, 0.58)
-    .to(subtitleRef.value, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.88)
-    .to(buttonWrapRef.value, { opacity: 1, y: 0, duration: 0.46, ease: 'back.out(1.3)' }, 1.02);
+      filter: 'blur(0px)',
+      duration: 0.64,
+      stagger: 0.04,
+      ease: 'back.out(2.2)'
+    }, 0.64)
+    .to(subtitleRef.value, { opacity: 1, y: 0, duration: 0.54, ease: 'power3.out' }, 0.98)
+    .to(buttonWrapRef.value, { opacity: 1, y: 0, duration: 0.62, ease: 'back.out(1.8)' }, 1.12);
 
   loopTweens.push(
     gsap.to(buttonRef.value, {
-      boxShadow: '0 0 0 14px rgba(255, 196, 108, 0.14)',
-      duration: 1.35,
+      boxShadow: '0 0 0 22px rgba(255, 196, 108, 0.22)',
+      scale: 1.06,
+      duration: 1.05,
       repeat: -1,
       yoyo: true,
-      ease: 'sine.inOut',
+      ease: 'power1.inOut',
       delay: 1.6
     })
   );
 
   loopTweens.push(
     gsap.to('.storybook-dust .student-sparkle', {
-      y: '-=10',
-      duration: 2.2,
+      x: () => randomBetween(-18, 18),
+      y: () => randomBetween(-26, -10),
+      rotate: () => randomBetween(-20, 20),
+      duration: () => randomBetween(1.2, 2.4),
       repeat: -1,
       yoyo: true,
-      stagger: 0.14,
-      ease: 'sine.inOut'
+      repeatRefresh: true,
+      stagger: 0.1,
+      ease: 'power1.inOut'
     })
   );
 
   loopTweens.push(
-        gsap.to('.storybook-ornament-star', {
-          y: '-=18',
-          rotate: 10,
-          duration: 3.4,
+    gsap.to('.storybook-ornament-star', {
+      y: () => randomBetween(-28, -14),
+      x: () => randomBetween(-12, 12),
+      rotate: () => randomBetween(-18, 18),
+      duration: () => randomBetween(2, 3.4),
       repeat: -1,
       yoyo: true,
-      ease: 'sine.inOut'
+      repeatRefresh: true,
+      ease: 'power1.inOut'
     })
   );
 
   loopTweens.push(
-        gsap.to('.storybook-ornament-cloud', {
-          x: '+=42',
-          duration: 8,
+    gsap.to('.storybook-ornament-cloud', {
+      x: () => randomBetween(40, 74),
+      y: () => randomBetween(-14, 14),
+      duration: () => randomBetween(5.6, 8.2),
       repeat: -1,
       yoyo: true,
-      ease: 'sine.inOut'
+      repeatRefresh: true,
+      ease: 'power1.inOut'
     })
   );
 
   loopTweens.push(
-        gsap.to('.storybook-ornament-balloon', {
-          y: '-=26',
-          duration: 4.6,
+    gsap.to('.storybook-ornament-balloon', {
+      y: () => randomBetween(-40, -20),
+      x: () => randomBetween(-10, 12),
+      rotate: () => randomBetween(-8, 8),
+      duration: () => randomBetween(2.8, 4.4),
       repeat: -1,
       yoyo: true,
-      ease: 'sine.inOut'
+      repeatRefresh: true,
+      ease: 'power1.inOut'
     })
   );
 });
