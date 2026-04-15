@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <div class="question-topline">
       <div>
@@ -12,9 +12,6 @@
     <div class="instruction-player-card">
       <div class="instruction-script">{{ question.instructionText }}</div>
       <div class="muted tiny">示例：老师在配置页画框，学生端就按这些区域直接点击。</div>
-    </div>
-    <div class="listening-buddy-wrap">
-      <AudioBuddy :mode="audioState.listeningState" :compact="true" caption="先听小熊老师的提示，再点击正确区域。" />
     </div>
 
     <div class="student-instruction-stage">
@@ -38,7 +35,6 @@
 /* global defineProps, defineEmits */
 import { computed, onMounted } from 'vue';
 import { resolveInstructionImage } from '../../utils/content';
-import AudioBuddy from '../shared/AudioBuddy.vue';
 
 const props = defineProps({
   question: { type: Object, required: true },

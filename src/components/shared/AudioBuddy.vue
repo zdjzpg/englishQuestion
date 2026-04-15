@@ -24,7 +24,7 @@
         <span v-for="index in 5" :key="index"></span>
       </div>
     </div>
-    <div class="audio-buddy-caption">{{ resolvedCaption }}</div>
+    <div v-if="showCaption && resolvedCaption" class="audio-buddy-caption">{{ resolvedCaption }}</div>
   </div>
 </template>
 
@@ -35,7 +35,8 @@ import { computed } from 'vue';
 const props = defineProps({
   mode: { type: String, default: 'idle' },
   caption: { type: String, default: '' },
-  compact: { type: Boolean, default: false }
+  compact: { type: Boolean, default: false },
+  showCaption: { type: Boolean, default: true }
 });
 
 const defaultCaptionMap = {

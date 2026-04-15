@@ -26,7 +26,7 @@
 
   <div
     v-if="state.currentPaper"
-    :class="['app-shell', { 'paper-view-shell-intake': isIntakeState }]"
+    :class="['app-shell', { 'paper-view-shell-intake': isIntakeState, 'paper-view-shell-exam': isExamState }]"
   >
     <template v-if="!state.sessionStarted && !state.report">
       <div class="hero">
@@ -268,6 +268,7 @@ const intakeAttempted = ref(false);
 const showIntakeErrors = computed(() => intakeAttempted.value);
 const rewardItems = computed(() => state.currentPaper?.rewardConfig?.items || []);
 const isIntakeState = computed(() => Boolean(state.currentPaper && !state.sessionStarted && !state.report));
+const isExamState = computed(() => Boolean(state.currentPaper && state.sessionStarted && !state.report));
 const reportAbilityItems = computed(() => REPORT_ABILITIES
   .filter((label) => state.report?.abilityMap?.[label]?.total > 0)
   .map((label) => {

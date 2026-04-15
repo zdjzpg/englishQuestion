@@ -19,7 +19,7 @@
 <script setup>
 /* global defineProps */
 import { gsap } from 'gsap';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -42,22 +42,50 @@ function stopLoops() {
   loopTweens.splice(0).forEach((tween) => tween.kill());
 }
 
-function playOpenAnimation() {
-  stopLoops();
+function getAnimationTargets() {
+  if (
+    !overlayRef.value
+    || !cardRef.value
+    || !glowRef.value
+    || !animalRef.value
+    || !ringOneRef.value
+    || !ringTwoRef.value
+    || !ringThreeRef.value
+  ) {
+    return null;
+  }
 
-  gsap.set(overlayRef.value, { opacity: 0 });
-  gsap.set(cardRef.value, { opacity: 0, y: 18, scale: 0.9 });
-  gsap.set(glowRef.value, { opacity: 0.4, scale: 0.7 });
-  gsap.set(animalRef.value, { y: 10, scale: 0.88, rotate: -6 });
-  gsap.set([ringOneRef.value, ringTwoRef.value, ringThreeRef.value], { opacity: 0, x: -12, scaleX: 0.4 });
+  return {
+    overlay: overlayRef.value,
+    card: cardRef.value,
+    glow: glowRef.value,
+    animal: animalRef.value,
+    rings: [ringOneRef.value, ringTwoRef.value, ringThreeRef.value]
+  };
+}
+
+async function playOpenAnimation() {
+  stopLoops();
+  await nextTick();
+
+  const targets = getAnimationTargets();
+  if (!targets) {
+    return;
+  }
+
+  gsap.set(targets.overlay, { opacity: 0 });
+  gsap.set(targets.card, { opacity: 0, y: 18, scale: 0.9 });
+  gsap.set(targets.glow, { opacity: 0.4, scale: 0.7 });
+  gsap.set(targets.animal, { y: 10, scale: 0.88, rotate: -6 });
+  gsap.set(targets.rings, { opacity: 0, x: -12, scaleX: 0.4 });
 
   const timeline = gsap.timeline();
   timeline
-    .to(overlayRef.value, { opacity: 1, duration: 0.18 })
-    .to(cardRef.value, { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: 'back.out(1.6)' }, 0)
-    .to(glowRef.value, { opacity: 0.92, scale: 1, duration: 0.5, ease: 'power2.out' }, 0.08)
-    .to(animalRef.value, { y: 0, scale: 1, rotate: 0, duration: 0.45, ease: 'back.out(1.8)' }, 0.06)
-    .to([ringOneRef.value, ringTwoRef.value, ringThreeRef.value], {
+    .to(targets.overlay, { opacity: 1, duration: 0.18 })
+    .to(targets.card, { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: 'back.out(1.6)' }, 0)
+    .to(targets.glow, { opacity: 0.92, scale: 1, duration: 0.5, ease: 'power2.out' }, 0.08)
+    .to(targets.animal, { y: 0, scale: 1, rotate: 0, duration: 0.45, ease: 'back.out(1.8)' }, 0.06)
+    .to(targets.rings, {
       opacity: 1,
       x: 0,
       scaleX: 1,
@@ -67,7 +95,7 @@ function playOpenAnimation() {
     }, 0.18);
 
   loopTweens.push(
-    gsap.to(animalRef.value, {
+    gsap.to(targets.animal, {
       y: '-=10',
       rotate: 3,
       duration: 1.4,
@@ -77,7 +105,7 @@ function playOpenAnimation() {
     })
   );
   loopTweens.push(
-    gsap.to(glowRef.value, {
+    gsap.to(targets.glow, {
       scale: 1.08,
       opacity: 0.75,
       duration: 1.3,
@@ -87,7 +115,7 @@ function playOpenAnimation() {
     })
   );
   loopTweens.push(
-    gsap.to([ringOneRef.value, ringTwoRef.value, ringThreeRef.value], {
+    gsap.to(targets.rings, {
       x: '+=10',
       opacity: 0.2,
       duration: 0.9,
@@ -99,13 +127,13 @@ function playOpenAnimation() {
   );
 }
 
-watch(() => props.open, (value) => {
+watch(() => props.open, async (value) => {
   if (value) {
-    playOpenAnimation();
+    await playOpenAnimation();
     return;
   }
   stopLoops();
-});
+}, { flush: 'post' });
 
 onBeforeUnmount(() => {
   stopLoops();

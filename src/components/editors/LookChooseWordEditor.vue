@@ -1,35 +1,43 @@
 <template>
-  <a-form-item label="选项配置">
-    <div class="listen-choice-editor-list">
-      <div
-        v-for="(choice, index) in choices"
-        :key="choice.id"
-        class="listen-choice-editor-row"
-      >
-        <div class="listen-choice-editor-order">选项 {{ index + 1 }}</div>
-        <ImageUploadField
-          :model-value="choice.imageUrl"
-          button-text="上传图片"
-          replace-text="更换图片"
-          compact
-          @update:modelValue="updateChoice(choice.id, { imageUrl: $event })"
-        />
-        <a-input :value="choice.word" placeholder="对应英文单词" @update:value="updateChoice(choice.id, { word: $event })" />
-        <label class="listen-choice-editor-answer">
-          <input
-            type="radio"
-            :name="`look-choose-word-answer-${question.id}`"
-            :checked="question.correctChoiceId === choice.id"
-            @change="selectCorrectChoice(choice.id)"
-          />
-          <span>正确答案</span>
-        </label>
-        <a-button danger @click="removeChoice(choice.id)">删除</a-button>
-      </div>
+  <div class="look-word-editor">
+    <a-form-item label="目标图片">
+      <ImageUploadField
+        :model-value="question.imageUrl"
+        button-text="上传目标图片"
+        replace-text="更换目标图片"
+        @update:modelValue="patchQuestion({ imageUrl: $event })"
+      />
+    </a-form-item>
 
-      <a-button dashed @click="addChoice">新增选项</a-button>
-    </div>
-  </a-form-item>
+    <a-form-item label="文字选项">
+      <div class="look-word-option-list">
+        <div
+          v-for="(choice, index) in choices"
+          :key="choice.id"
+          class="look-word-option-row"
+        >
+          <div class="listen-choice-editor-order">选项 {{ index + 1 }}</div>
+          <a-input
+            :value="choice.word"
+            placeholder="输入英文单词"
+            @update:value="updateChoice(choice.id, { word: $event })"
+          />
+          <label class="listen-choice-editor-answer">
+            <input
+              type="radio"
+              :name="`look-choose-word-answer-${question.id}`"
+              :checked="question.correctChoiceId === choice.id"
+              @change="selectCorrectChoice(choice.id)"
+            />
+            <span>正确答案</span>
+          </label>
+          <a-button danger @click="removeChoice(choice.id)">删除</a-button>
+        </div>
+
+        <a-button dashed @click="addChoice">新增选项</a-button>
+      </div>
+    </a-form-item>
+  </div>
 </template>
 
 <script setup>
@@ -48,15 +56,23 @@ const emit = defineEmits(['patch']);
 function createChoice() {
   return {
     id: `choice_${Math.random().toString(36).slice(2, 9)}`,
-    imageUrl: '',
     word: ''
   };
 }
 
+function patchQuestion(patch) {
+  emit('patch', patch);
+}
+
 function ensureDraft() {
   const draft = ensureLookChooseWordDraft(props.question);
-  if (!Array.isArray(props.question.choices) || props.question.correctChoiceId !== draft.correctChoiceId) {
+  if (
+    !Array.isArray(props.question.choices)
+    || props.question.correctChoiceId !== draft.correctChoiceId
+    || props.question.imageUrl !== draft.imageUrl
+  ) {
     emit('patch', {
+      imageUrl: draft.imageUrl,
       choices: draft.choices,
       correctChoiceId: draft.correctChoiceId
     });

@@ -11,8 +11,7 @@
 
     <div class="read-panel">
       <div class="mascot-card read-buddy-card">
-        <AudioBuddy :mode="audioState.readAloudState" :caption="buddyCaption" />
-        <h3 style="margin:12px 0 6px; font-size:28px;">{{ question.questionText }}</h3>
+        <h3 style="margin: 12px 0 6px; font-size: 28px;">{{ question.questionText }}</h3>
         <p class="muted">可以先听一遍，再点击开始回答。</p>
       </div>
       <div class="recorder-box">
@@ -30,7 +29,7 @@
           </button>
           <button class="btn btn-ghost" @click="$emit('mock-answer', question.id)">使用演示回答</button>
         </div>
-        <div class="field" style="margin-top:18px;">
+        <div class="field" style="margin-top: 18px;">
           <label>识别文本</label>
           <input readonly :value="answer.transcript || '等待开始识别'" />
         </div>
@@ -41,27 +40,11 @@
 
 <script setup>
 /* global defineProps, defineEmits */
-import { computed } from 'vue';
-import AudioBuddy from '../shared/AudioBuddy.vue';
-
-const props = defineProps({
+defineProps({
   question: { type: Object, required: true },
   answer: { type: Object, required: true },
   waveBars: { type: Array, required: true },
   audioState: { type: Object, required: true }
-});
-
-const buddyCaption = computed(() => {
-  if (props.audioState.readAloudState === 'demo_playing') {
-    return '先听问题，再认真回答。';
-  }
-  if (props.audioState.readAloudState === 'recording') {
-    return '正在听你回答。';
-  }
-  if (props.audioState.readAloudState === 'scored') {
-    return '回答已经记录下来啦。';
-  }
-  return '准备好后开始回答。';
 });
 
 defineEmits(['speak', 'start-speech', 'mock-answer']);

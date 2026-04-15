@@ -162,6 +162,7 @@ export function getQuestionDefaults(type) {
       type,
       score: 10,
       prompt: '看看图片，选出正确单词。',
+      imageUrl: '',
       choices,
       correctChoiceId: choices[0]?.id || ''
     });

@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <div class="stack admin-editor-scroll">
+      <div class="stack">
         <div class="admin-section">
           <div class="admin-section-header">
             <div>

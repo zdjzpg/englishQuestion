@@ -5,11 +5,16 @@
     <div class="student-overlay-glow finish-glow right"></div>
 
     <div ref="cardRef" class="student-overlay-card finish-card">
+      <div ref="ribbonRef" class="finish-ribbon">通关成功</div>
+      <div ref="burstRef" class="finish-burst">
+        <span></span><span></span><span></span>
+      </div>
+      <div ref="mascotRef" class="finish-mascot">🏆</div>
       <div ref="starsRef" class="finish-stars">✨ ✨ ✨</div>
       <h2 ref="titleRef">闯关完成</h2>
       <p ref="subtitleRef">你的答卷已经提交，准备进入幸运转盘。</p>
       <div ref="buttonWrapRef" class="finish-button-wrap">
-        <button ref="buttonRef" class="btn btn-primary student-overlay-cta" @click="$emit('continue')">继续</button>
+        <button ref="buttonRef" class="btn btn-primary student-overlay-cta" @click="$emit('continue')">继续领奖励</button>
       </div>
     </div>
   </div>
@@ -19,67 +24,103 @@
 /* global defineEmits */
 import confetti from 'canvas-confetti';
 import { gsap } from 'gsap';
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineEmits(['continue']);
 
 const overlayRef = ref(null);
 const confettiCanvas = ref(null);
 const cardRef = ref(null);
+const ribbonRef = ref(null);
+const burstRef = ref(null);
+const mascotRef = ref(null);
 const starsRef = ref(null);
 const titleRef = ref(null);
 const subtitleRef = ref(null);
 const buttonWrapRef = ref(null);
 const buttonRef = ref(null);
+const loopTweens = [];
 
 onMounted(() => {
-  gsap.set([starsRef.value, titleRef.value, subtitleRef.value, buttonWrapRef.value], {
+  gsap.set([ribbonRef.value, mascotRef.value, starsRef.value, titleRef.value, subtitleRef.value, buttonWrapRef.value], {
     opacity: 0,
     y: 28
   });
-  gsap.set(cardRef.value, { opacity: 0, scale: 0.78, y: 40 });
-  gsap.set('.finish-glow', { opacity: 0, scale: 0.8 });
+  gsap.set(cardRef.value, { opacity: 0, scale: 0.76, y: 46, rotate: -2 });
+  gsap.set(burstRef.value, { opacity: 0, scale: 0.5 });
+  gsap.set('.finish-glow', { opacity: 0, scale: 0.74 });
 
   gsap.timeline()
-    .to(overlayRef.value, { opacity: 1, duration: 0.18 })
-    .to('.finish-glow', { opacity: 1, scale: 1, duration: 0.9, ease: 'power2.out' }, 0)
-    .to(cardRef.value, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: 'back.out(1.35)' }, 0.05)
-    .to(starsRef.value, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' }, 0.24)
-    .to(titleRef.value, { opacity: 1, y: 0, duration: 0.52, ease: 'power3.out' }, 0.34)
-    .to(subtitleRef.value, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.48)
-    .to(buttonWrapRef.value, { opacity: 1, y: 0, duration: 0.45, ease: 'back.out(1.2)' }, 0.9);
+    .to(overlayRef.value, { opacity: 1, duration: 0.2 })
+    .to('.finish-glow', { opacity: 1, scale: 1, duration: 1, ease: 'power2.out' }, 0)
+    .to(cardRef.value, { opacity: 1, scale: 1, y: 0, rotate: 0, duration: 0.92, ease: 'back.out(1.45)' }, 0.05)
+    .to(burstRef.value, { opacity: 1, scale: 1, duration: 0.52, ease: 'back.out(1.9)' }, 0.18)
+    .to(ribbonRef.value, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 0.26)
+    .to(mascotRef.value, { opacity: 1, y: 0, duration: 0.52, ease: 'back.out(1.8)' }, 0.34)
+    .to(starsRef.value, { opacity: 1, y: 0, duration: 0.42, ease: 'power3.out' }, 0.44)
+    .to(titleRef.value, { opacity: 1, y: 0, duration: 0.48, ease: 'power3.out' }, 0.56)
+    .to(subtitleRef.value, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.72)
+    .to(buttonWrapRef.value, { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.3)' }, 1.02);
 
-  gsap.to(starsRef.value, {
-    y: '-=8',
-    duration: 1.2,
-    repeat: -1,
-    yoyo: true,
-    ease: 'sine.inOut'
-  });
+  loopTweens.push(
+    gsap.to(mascotRef.value, {
+      y: '-=10',
+      duration: 1.2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut'
+    })
+  );
+
+  loopTweens.push(
+    gsap.to(starsRef.value, {
+      y: '-=8',
+      duration: 1.3,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut'
+    })
+  );
+
+  loopTweens.push(
+    gsap.to(buttonRef.value, {
+      boxShadow: '0 0 0 16px rgba(255, 192, 89, 0.16)',
+      duration: 1.4,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      delay: 1.3
+    })
+  );
 
   const fire = confetti.create(confettiCanvas.value, { resize: true, useWorker: true });
   fire({
-    particleCount: 90,
-    spread: 90,
-    startVelocity: 45,
-    origin: { x: 0.5, y: 0.75 },
-    colors: ['#5ec8ff', '#ffd55d', '#ff8db6', '#7cde86']
+    particleCount: 110,
+    spread: 96,
+    startVelocity: 48,
+    origin: { x: 0.5, y: 0.72 },
+    colors: ['#5ec8ff', '#ffd55d', '#ff8db6', '#7cde86', '#ffb347']
   });
+
   window.setTimeout(() => {
     fire({
-      particleCount: 70,
-      angle: 60,
-      spread: 70,
-      origin: { x: 0.12, y: 0.8 },
+      particleCount: 90,
+      angle: 58,
+      spread: 78,
+      origin: { x: 0.1, y: 0.8 },
       colors: ['#5ec8ff', '#ffd55d', '#ff8db6']
     });
     fire({
-      particleCount: 70,
-      angle: 120,
-      spread: 70,
-      origin: { x: 0.88, y: 0.8 },
+      particleCount: 90,
+      angle: 122,
+      spread: 78,
+      origin: { x: 0.9, y: 0.8 },
       colors: ['#7cde86', '#ffd55d', '#ff8db6']
     });
   }, 260);
+});
+
+onBeforeUnmount(() => {
+  loopTweens.forEach((tween) => tween.kill());
 });
 </script>

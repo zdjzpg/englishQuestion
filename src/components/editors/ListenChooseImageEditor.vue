@@ -12,6 +12,7 @@
           button-text="上传图片"
           replace-text="更换图片"
           compact
+          layout="side-actions"
           @update:modelValue="updateChoice(choice.id, { imageUrl: $event })"
         />
         <a-input :value="choice.word" placeholder="对应英文单词" @update:value="updateChoice(choice.id, { word: $event })" />

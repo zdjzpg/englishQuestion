@@ -1,5 +1,5 @@
 <template>
-  <div class="image-upload-field" :class="{ compact }">
+  <div class="image-upload-field" :class="{ compact, 'side-actions': layout === 'side-actions' }">
     <div v-if="modelValue" class="image-upload-preview">
       <img :src="modelValue" alt="uploaded preview" class="image-upload-preview-img" />
     </div>
@@ -28,7 +28,8 @@ defineProps({
   modelValue: { type: String, default: '' },
   buttonText: { type: String, default: '上传图片' },
   replaceText: { type: String, default: '更换图片' },
-  compact: { type: Boolean, default: false }
+  compact: { type: Boolean, default: false },
+  layout: { type: String, default: 'default' }
 });
 
 const emit = defineEmits(['update:modelValue']);

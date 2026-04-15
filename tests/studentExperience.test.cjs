@@ -96,8 +96,8 @@ test('student overlays include delayed finish CTA and separate reward result car
   assert.match(listenChooseImageSource, /question\.choices/);
   assert.match(listenChooseImageSource, /answer\.selected === choice\.id/);
   assert.doesNotMatch(listenChooseImageSource, /caption="先听一听，再选图片。"/);
-  assert.match(listenChooseLetterSource, /letter-pool/);
-  assert.match(listenChooseLetterSource, /letter-drop-zone/);
+  assert.match(listenChooseLetterSource, /loose-letter-garden/);
+  assert.match(listenChooseLetterSource, /letter-home-shell/);
   assert.match(listenChooseLetterSource, /set-letter-slot/);
   assert.match(paperViewSource, /@set-letter-slot=/);
   assert.match(stylesSource, /\.image-upload-field\.compact \.image-upload-preview-img\s*\{/);
