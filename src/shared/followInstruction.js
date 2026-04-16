@@ -35,9 +35,10 @@ function normalizeDraggableObject(draggableObject = {}) {
 }
 
 function normalizeTarget(target = {}, index = 0) {
+  const hasLabel = Object.prototype.hasOwnProperty.call(target, 'label');
   return {
     id: target.id || `target_${index + 1}`,
-    label: String(target.label || `region ${index + 1}`).trim(),
+    label: hasLabel ? String(target.label ?? '').trim() : `region ${index + 1}`,
     x: clampPercent(toNumber(target.x)),
     y: clampPercent(toNumber(target.y)),
     width: clampPercent(toNumber(target.width)),

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Ma+Shan+Zheng&family=Nunito:wght@500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&family=ZCOOL+KuaiLe&display=swap');
 
 :root {
   --sky: #76d2ff;
@@ -15,8 +15,9 @@
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
+  --font-title: "ZCOOL KuaiLe", "Fredoka", "Baloo 2", "Microsoft YaHei", cursive;
   --font-display: "Baloo 2", "Trebuchet MS", "Tw Cen MT", "Segoe UI", "Microsoft YaHei", sans-serif;
-  --font-hand: "Ma Shan Zheng", "Segoe Print", "Comic Sans MS", "Microsoft YaHei", cursive;
+  --font-hand: var(--font-title);
   --font-body: "Nunito", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-admin: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --admin-ink: #183153;
@@ -97,7 +98,17 @@ button {
   flex-direction: column;
 }
 
+.paper-view-shell-report {
+  min-height: calc(100vh - 16px);
+  display: flex;
+  flex-direction: column;
+}
+
 body.exam-single-screen {
+  overflow: hidden;
+}
+
+body.report-single-screen {
   overflow: hidden;
 }
 
@@ -108,7 +119,20 @@ body.exam-single-screen .public-root {
   display: flex;
 }
 
+body.report-single-screen .public-root {
+  width: min(98vw, 1820px);
+  height: 100vh;
+  padding: 8px 0;
+  display: flex;
+}
+
 body.exam-single-screen .public-root > .app-shell.paper-view-shell-exam {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+body.report-single-screen .public-root > .app-shell.paper-view-shell-report {
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -145,8 +169,9 @@ body.exam-single-screen .public-root > .app-shell.paper-view-shell-exam {
   margin: 0;
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1.02;
-  font-family: var(--font-hand);
-  letter-spacing: 0.5px;
+  font-family: var(--font-title);
+  letter-spacing: 0.02em;
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.88), 0 10px 18px rgba(74, 141, 224, 0.2);
 }
 
 .hero-subtitle {
@@ -154,6 +179,8 @@ body.exam-single-screen .public-root > .app-shell.paper-view-shell-exam {
   max-width: 720px;
   font-size: 16px;
   line-height: 1.6;
+  font-family: var(--font-display);
+  font-weight: 700;
   color: rgba(255, 255, 255, 0.95);
 }
 
@@ -462,6 +489,7 @@ body.exam-single-screen .public-root > .app-shell.paper-view-shell-exam {
 
 .question-fit-content {
   width: calc(100% / var(--question-fit-scale, 1));
+  flex-shrink: 0;
   transform-origin: top left;
   transform: scale(var(--question-fit-scale, 1));
   will-change: transform;
@@ -497,14 +525,19 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 .exam-paper-title {
   margin: 12px 0 8px;
   font-size: 28px;
+  font-family: var(--font-title);
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.88), 0 8px 16px rgba(74, 141, 224, 0.16);
 }
 
 .question-title {
   margin: 10px 0 0;
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1.1;
-  font-family: var(--font-hand);
+  font-family: var(--font-title);
   color: #2f6ac0;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.82), 0 8px 14px rgba(89, 142, 219, 0.14);
 }
 
 .question-helper {
@@ -722,7 +755,6 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   width: min(100%, 760px);
   padding: clamp(12px, 2vh, 20px);
   border-radius: 28px;
-  border: 1px solid rgba(208, 232, 255, 0.96);
   background:
     radial-gradient(circle at 82% 16%, rgba(255, 230, 150, 0.34), transparent 16%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 250, 255, 0.96));
@@ -1660,6 +1692,76 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   justify-items: stretch;
 }
 
+.image-upload-field.compact.compact-picture-card {
+  position: relative;
+  width: 96px;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-wrapper {
+  width: 96px;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-list.ant-upload-list-picture-card {
+  display: block;
+  margin: 0;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-list-item-container {
+  width: 96px !important;
+  height: 72px !important;
+  margin: 0 !important;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-list-item {
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid #d9e4ef;
+  background: #f8fbff;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-list-item-thumbnail img {
+  object-fit: contain;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload.ant-upload-select-picture-card {
+  width: 96px;
+  height: 72px;
+  margin: 0;
+  border-radius: 14px;
+}
+
+.image-upload-field.compact.compact-picture-card.has-value .ant-upload.ant-upload-select-picture-card {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-color: transparent;
+  background: linear-gradient(180deg, rgba(26, 58, 102, 0.04), rgba(26, 58, 102, 0.42));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.image-upload-field.compact.compact-picture-card.has-value:hover .ant-upload.ant-upload-select-picture-card {
+  opacity: 1;
+}
+
+.image-upload-card-trigger {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  color: #355f97;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.image-upload-field.compact.compact-picture-card.has-value .image-upload-card-trigger {
+  color: #fff;
+}
+
+.image-upload-field.compact.compact-picture-card .ant-upload-list-item-actions {
+  z-index: 2;
+}
+
 .image-upload-field .ant-space {
   flex-wrap: wrap;
 }
@@ -1926,7 +2028,7 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   margin: 0;
   color: #2a67b5;
   font-size: clamp(34px, 5vw, 46px);
-  font-family: var(--font-hand);
+  font-family: var(--font-title);
 }
 
 .student-overlay-card p {
@@ -2112,7 +2214,7 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 .storybook-title {
   margin: 8px 0 6px !important;
   max-width: min(92%, 620px);
-  font-family: var(--font-hand);
+  font-family: var(--font-title);
   font-size: clamp(32px, 4.8vw, 52px);
   font-weight: 700;
   line-height: 1.14;
@@ -2358,6 +2460,23 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   padding: 28px;
   display: grid;
   gap: 24px;
+}
+
+.paper-view-shell-report > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+body.report-single-screen .paper-view-shell-report .hero {
+  padding: 20px 24px 18px;
+  flex: 0 0 auto;
+}
+
+body.report-single-screen .paper-view-shell-report .report-grid {
+  padding: 18px 22px 20px;
+  gap: 18px;
 }
 
 .report-panels {
@@ -3231,6 +3350,7 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.4fr);
   gap: 20px;
+  align-items: start;
 }
 
 .admin-inline-message {
@@ -3547,34 +3667,79 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 }
 
 .instruction-modal-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.instruction-modal-scene {
   display: grid;
-  gap: 8px;
-  min-width: min(640px, 100%);
+  gap: 14px;
+  margin-bottom: 12px;
 }
 
-.instruction-modal-scene-field {
+.instruction-config-guide {
+  display: block;
+}
+
+.instruction-config-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.instruction-config-panel.is-drag-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.instruction-config-card {
+  border-radius: 22px;
+  border: 1px solid rgba(214, 232, 252, 0.96);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 255, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.instruction-config-card .ant-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.instruction-config-card-header {
+  display: grid;
+  gap: 4px;
+}
+
+.instruction-config-card-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #2f64aa;
+}
+
+.instruction-config-card-note {
+  color: #6b85ad;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.instruction-config-card .image-upload-field.compact.compact-picture-card {
+  width: 120px;
+}
+
+.instruction-config-card .image-upload-field.compact.compact-picture-card .ant-upload-wrapper,
+.instruction-config-card .image-upload-field.compact.compact-picture-card .ant-upload-list-item-container,
+.instruction-config-card .image-upload-field.compact.compact-picture-card .ant-upload.ant-upload-select-picture-card {
+  width: 120px !important;
+}
+
+.instruction-config-card .image-upload-field.compact.compact-picture-card .ant-upload-list-item-container,
+.instruction-config-card .image-upload-field.compact.compact-picture-card .ant-upload.ant-upload-select-picture-card {
+  height: 90px !important;
+}
+
+.instruction-config-fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) repeat(3, minmax(140px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.instruction-config-fields .ant-form-item {
   margin-bottom: 0;
-}
-
-.instruction-modal-scene-field .image-upload-field {
-  max-width: 380px;
-}
-
-.instruction-modal-scene-field .image-upload-preview-img {
-  max-height: 128px;
-}
-
-.instruction-modal-object-grid {
-  margin-top: 8px;
 }
 
 .instruction-editor-grid {
@@ -3630,7 +3795,9 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 .instruction-scene-image,
 .student-instruction-image {
   width: 100%;
+  height: 100%;
   display: block;
+  object-fit: contain;
 }
 
 .instruction-object-preview {
@@ -3761,6 +3928,8 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   overflow: hidden;
   border: 1px solid rgba(211, 235, 255, 0.96);
   background: linear-gradient(180deg, rgba(255, 251, 238, 0.96), rgba(241, 249, 255, 0.96));
+  display: grid;
+  place-items: center;
 }
 
 .student-instruction-empty-state {
@@ -3844,6 +4013,8 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
     align-items: flex-start;
   }
 
+  .instruction-config-panel.is-drag-mode,
+  .instruction-config-fields,
   .instruction-editor-grid {
     grid-template-columns: 1fr;
   }

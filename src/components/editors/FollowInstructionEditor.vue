@@ -54,62 +54,74 @@
       @cancel="closeRegionModal"
     >
       <div class="instruction-modal-toolbar">
-        <div class="instruction-modal-scene">
-          <a-form-item class="instruction-modal-scene-field" label="上传场景图">
+        <div class="instruction-config-guide muted tiny">{{ instructionGuide }}</div>
+
+        <div class="instruction-config-panel" :class="{ 'is-drag-mode': isDragMode }">
+          <a-card class="instruction-config-card" :bordered="false">
+            <div class="instruction-config-card-header">
+              <div class="instruction-config-card-title">场景图</div>
+              <div class="instruction-config-card-note">用于绘制目标区域</div>
+            </div>
             <ImageUploadField
               :model-value="question.imageUrl"
               button-text="上传场景图"
+              replace-text="更换场景图"
+              compact
               @update:modelValue="updateText('imageUrl', $event)"
             />
-          </a-form-item>
-        </div>
-        <span class="muted tiny">{{ instructionGuide }}</span>
-      </div>
+          </a-card>
 
-      <div v-if="isDragMode" class="field-grid three instruction-modal-object-grid">
-        <a-form-item label="拖拽物名称">
-          <a-input
-            :value="draggableObject.label"
-            placeholder="例如：apple"
-            @update:value="patchDraggableObject({ label: $event })"
-          />
-        </a-form-item>
-        <a-form-item label="拖拽物图片">
+          <a-card v-if="isDragMode" class="instruction-config-card" :bordered="false">
+            <div class="instruction-config-card-header">
+              <div class="instruction-config-card-title">拖拽物图片</div>
+              <div class="instruction-config-card-note">学生端拖动的物品</div>
+            </div>
             <ImageUploadField
               :model-value="draggableObject.imageUrl"
               button-text="上传拖拽物"
+              replace-text="更换拖拽物"
               compact
-              layout="side-actions"
               @update:modelValue="patchDraggableObject({ imageUrl: $event })"
             />
-        </a-form-item>
-        <a-form-item label="初始 X (%)">
-          <a-input-number
-            :value="draggableObject.startX"
-            :min="0"
-            :max="100"
-            :style="{ width: '100%' }"
-            @change="patchObjectPercent('startX', $event)"
-          />
-        </a-form-item>
-        <a-form-item label="初始 Y (%)">
-          <a-input-number
-            :value="draggableObject.startY"
-            :min="0"
-            :max="100"
-            :style="{ width: '100%' }"
-            @change="patchObjectPercent('startY', $event)"
-          />
-        </a-form-item>
-        <a-form-item label="大小 (%)">
-          <a-input-number
-            :value="draggableObject.size"
-            :min="8"
-            :max="36"
-            :style="{ width: '100%' }"
-            @change="patchObjectPercent('size', $event)"
-          />
-        </a-form-item>
+          </a-card>
+        </div>
+
+        <div v-if="isDragMode" class="instruction-config-fields">
+          <a-form-item label="拖拽物名称">
+            <a-input
+              :value="draggableObject.label"
+              placeholder="例如：apple"
+              @update:value="patchDraggableObject({ label: $event })"
+            />
+          </a-form-item>
+          <a-form-item label="初始 X (%)">
+            <a-input-number
+              :value="draggableObject.startX"
+              :min="0"
+              :max="100"
+              :style="{ width: '100%' }"
+              @change="patchObjectPercent('startX', $event)"
+            />
+          </a-form-item>
+          <a-form-item label="初始 Y (%)">
+            <a-input-number
+              :value="draggableObject.startY"
+              :min="0"
+              :max="100"
+              :style="{ width: '100%' }"
+              @change="patchObjectPercent('startY', $event)"
+            />
+          </a-form-item>
+          <a-form-item label="大小 (%)">
+            <a-input-number
+              :value="draggableObject.size"
+              :min="8"
+              :max="36"
+              :style="{ width: '100%' }"
+              @change="patchObjectPercent('size', $event)"
+            />
+          </a-form-item>
+        </div>
       </div>
 
       <div class="instruction-editor-grid instruction-modal-grid">
@@ -153,7 +165,7 @@
                 @mousedown.stop
                 @click.stop="selectTarget(target.id)"
               >
-                <span>{{ target.label || target.id }}</span>
+                <span v-if="target.label">{{ target.label }}</span>
               </div>
               <div
                 v-if="draftRect"
@@ -252,8 +264,8 @@ const selectedTarget = computed(() => targets.value.find((target) => target.id =
 const currentTargetLabel = computed(() => selectedTarget.value?.label || props.question.correctTargetId || '未设置');
 const instructionGuide = computed(() => (
   isDragMode.value
-    ? '建议在弹窗中上传场景图并画框，再设置拖拽物初始位置。'
-    : '建议在弹窗中上传场景图并画框，学生端会按点击区域判分。'
+    ? '建议先上传场景图并画框，再设置拖拽物初始位置。'
+    : '建议先上传场景图并画框，学生端会按点击区域判分。'
 ));
 const activeTargetLabel = computed(() => (
   isDragMode.value ? '当前目标区域' : '当前正确答案'

@@ -14,7 +14,7 @@ function getCssBlock(source, selector) {
   return match[1];
 }
 
-test('choice editors use side-actions upload layout so image actions sit to the right of the preview', () => {
+test('choice editors keep compact upload slots while large target images stay on the default upload layout', () => {
   const listenChooseImageEditorSource = read('src/components/editors/ListenChooseImageEditor.vue');
   const lookChooseWordEditorSource = read('src/components/editors/LookChooseWordEditor.vue');
   const imageUploadFieldSource = read('src/components/editors/ImageUploadField.vue');
@@ -23,7 +23,7 @@ test('choice editors use side-actions upload layout so image actions sit to the 
   const choiceRowBlock = getCssBlock(stylesSource, '.listen-choice-editor-row');
 
   assert.match(listenChooseImageEditorSource, /layout="side-actions"/);
-  assert.match(lookChooseWordEditorSource, /layout="side-actions"/);
+  assert.doesNotMatch(lookChooseWordEditorSource, /layout="side-actions"/);
   assert.match(imageUploadFieldSource, /layout:\s*\{\s*type:\s*String,\s*default:\s*'default'\s*\}/);
   assert.match(sideActionsFieldBlock, /grid-template-columns:\s*96px minmax\(0,\s*1fr\);/);
   assert.match(choiceRowBlock, /grid-template-columns:\s*72px minmax\(0,\s*220px\) minmax\(0,\s*1fr\) 120px auto;/);

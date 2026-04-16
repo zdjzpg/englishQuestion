@@ -113,6 +113,18 @@ test('normalizeInstructionQuestion keeps configured drag_place data', () => {
   assert.equal(question.draggableObject.size, 20);
 });
 
+test('normalizeInstructionQuestion preserves explicit empty labels for hidden target badges', () => {
+  const question = normalizeInstructionQuestion({
+    id: 'q_hidden_label',
+    type: 'listen_follow_instruction',
+    targets: [
+      { id: 'target_1', label: '', x: 10, y: 20, width: 30, height: 40 }
+    ]
+  });
+
+  assert.equal(question.targets[0].label, '');
+});
+
 test('listen follow instruction defaults no longer prefill demo image in new paper', () => {
   const contentSource = read('src/utils/content.js');
   assert.match(contentSource, /if \(type === 'listen_follow_instruction'\)/);
@@ -122,23 +134,38 @@ test('listen follow instruction defaults no longer prefill demo image in new pap
   assert.doesNotMatch(contentSource, /imageUrl:\s*SAMPLE_INSTRUCTION_IMAGE/);
 });
 
-test('follow instruction editor and student view show empty-state instead of forcing demo image', () => {
+test('follow instruction editor and student view use the reorganized top config area and keep image-free fallbacks', () => {
   const editorSource = read('src/components/editors/FollowInstructionEditor.vue');
   const questionSource = read('src/components/questions/ListenFollowInstruction.vue');
   const stylesSource = read('src/styles.css');
 
   assert.match(editorSource, /instruction-empty-state/);
-  assert.match(editorSource, /(drag_place|INSTRUCTION_MODE_DRAG_PLACE)/);
-  assert.match(editorSource, /draggableObject/);
   assert.match(editorSource, /a-modal/);
   assert.match(editorSource, /isRegionModalOpen/);
-  assert.match(editorSource, /:model-value="question\.imageUrl"/);
-  assert.match(editorSource, /label="拖拽物图片"[\s\S]*compact/);
+  assert.match(editorSource, /instruction-config-guide/);
+  assert.match(editorSource, /instruction-config-panel/);
+  assert.match(editorSource, /instruction-config-card/);
+  assert.match(editorSource, /instruction-config-fields/);
+  assert.match(editorSource, /button-text="上传场景图"[\s\S]*replace-text="更换场景图"[\s\S]*compact/);
+  assert.match(editorSource, /instruction-config-card-title">拖拽物图片</);
+  assert.doesNotMatch(editorSource, /instruction-modal-scene-field/);
+  assert.doesNotMatch(editorSource, /instruction-modal-object-grid/);
+
   assert.match(questionSource, /student-instruction-empty-state/);
   assert.match(questionSource, /student-drag-object/);
-  assert.match(questionSource, /(drag_place|INSTRUCTION_MODE_DRAG_PLACE)/);
+  assert.match(questionSource, /handleImageLoad/);
+  assert.match(questionSource, /stageStyle/);
+  assert.match(questionSource, /@load="handleImageLoad"/);
+  assert.match(questionSource, /:style="stageStyle"/);
+  assert.match(questionSource, /<span v-if="target\.label">/);
+  assert.doesNotMatch(questionSource, /target\.label \|\| target\.id/);
+  assert.doesNotMatch(questionSource, /class="muted tiny"/);
+
   assert.match(stylesSource, /\.instruction-empty-state\s*\{/);
+  assert.match(stylesSource, /\.instruction-config-panel\s*\{/);
+  assert.match(stylesSource, /\.instruction-config-card\s*\{/);
+  assert.match(stylesSource, /\.instruction-config-fields\s*\{/);
   assert.match(stylesSource, /\.student-instruction-empty-state\s*\{/);
   assert.match(stylesSource, /\.student-drag-object\s*\{/);
-  assert.doesNotMatch(questionSource, /class="muted tiny"/);
+  assert.match(stylesSource, /\.student-instruction-image\s*\{[\s\S]*height:\s*100%;[\s\S]*object-fit:\s*contain;/);
 });

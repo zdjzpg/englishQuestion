@@ -1,7 +1,8 @@
-# 儿童英语测评项目上下文
+﻿# 儿童英语测评项目上下文
 
-注意！需要先读 agent.md
-最后更新时间：2026-04-15
+注意：进入这个项目继续开发前，先读 [agent.md](D:\aa-workplace\EnglishQuestion\agent.md)。
+
+最后更新时间：2026-04-16
 
 ## 项目定位
 
@@ -10,18 +11,18 @@
 - 老师端：登录后管理卷子、员工、答题记录
 - 学生端：通过分享码进入卷子，填写信息后开始答题
 
-当前设计目标已经从“能做题”升级到“3-6 岁儿童边玩边测”，所以学生端正在持续去掉“卷子感 / 后台感”，改成更像小游戏、贴纸卡和奖励反馈的体验。
+当前整体目标已经从“能做题”升级到“更像儿童互动测评”，所以学生端页面在持续弱化后台感、试卷感，强化游戏感、贴纸感、奖励反馈和动画体验。
 
 ## 技术栈
 
 - 前端：Vue 3 + Vue Router + Ant Design Vue
 - 后端：Node.js + Express
-- 数据库：MySQL（mysql2）
+- 数据库：MySQL + mysql2
 - 动效：
-  - `gsap`：播放浮层、开屏、结束动画等
-  - `canvas-confetti`：庆祝/奖励粒子
-- 其他：
-  - `html-to-image`：导出报告图片
+  - `gsap`
+  - `canvas-confetti`
+- 导出：
+  - `html-to-image`
 
 ## 主要路由
 
@@ -45,22 +46,26 @@
 - 听音做指令 `listen_follow_instruction`
 - 看图选词 `look_choose_word`
 - 拖拽组句 `sentence_sort`
-- 跟读练习 `read_aloud`
+- 单词跟读 `read_aloud`
 - 拼写填空 `spell_blank`
 - 听题口答 `listen_answer_question`
 - 听音选字母 `listen_choose_letter`
 - 图文跟读 `read_sentence_with_image`
-- 图片连线 `match_image_word`
+- 图片配对 `match_image_word`
 
-## 重要产品规则
+## 核心产品规则
 
 ### 老师端
 
 - 新建卷子默认是空白卷
-- 卷子总分必须配置到 100 分才允许保存
+- 卷子总分必须等于 100 分才允许保存
 - 题目能力维度当前只使用：`听 / 说 / 读`
-- 每题最多允许 2 个能力维度
-- 已有答题记录的卷子不能直接编辑，只能复制后再修改
+- 每题最多允许配置 2 个能力维度
+- 已有答题记录的卷子不能直接编辑，只能复制后再改
+- 报告评语的分数段不能重复
+- 开启转盘抽奖时：
+  - 每个奖品概率必须大于 0
+  - 概率总和必须等于 100
 
 ### 学生端
 
@@ -71,7 +76,8 @@
   - 年龄
   - 年级 / 班级
 - 学校字段已支持，但当前不是必填
-- 默认不提前展示错误提示，点击开始后再提示未填项
+- 默认不提前显示错误提示，点击“开始”后再提示未填项
+- 题目页持续在做单屏适配，尽量让内容在 100vh 内完成展示
 
 ### 报告与奖励
 
@@ -84,249 +90,143 @@
   - 开屏动画
   - 完成动画
   - 转盘抽奖
-  - 奖品列表与权重
+  - 奖品列表与概率
 
-## 当前后台结构
+## 当前页面状态
 
-### 编辑卷子页
+### 1. 已配置卷子页面
 
-当前编辑页已经做过一轮结构整理：
+支持：
 
-- 顶部标题区域显示 `编辑卷子`
-- 顶部操作按钮已经移到标题区：
+- 搜索卷子名称
+- 按题型筛选
+- 复制卷子
+- 编辑卷子
+- 进入卷子页面
+- 查看本卷答题情况
+
+### 2. 新增 / 编辑卷子页面
+
+支持：
+
+- 配置卷子基础信息
+- 配置题型
+- 配置互动奖励
+- 配置报告评语
+- 保存后写入数据库
+
+当前结构：
+
+- 顶部标题区显示“编辑卷子”
+- 顶部操作按钮在标题右侧：
   - 返回卷子列表
   - 预览学生页
   - 答题情况
   - 保存卷子
-- 原来的“新增卷子配置”统计大块已移除
 - 左列当前顺序：
   1. 添加题型
   2. 卷子基础信息
   3. 互动奖励
   4. 报告评语
 - 右列为题目列表
+- 左右列不再互相拉伸等高，左侧区块按自身内容高度自适应
 
-## 当前学生端 UI / 动效状态
+### 3. 卷子页面
 
-### 已完成的学生端体验优化
+支持：
 
-#### 全局
+- 学生填写姓名 / 电话 / 年龄 / 年级 / 学校
+- 进入答题流程
+- 做完生成当前结果
+- 不暴露配置页入口
 
-- 学生端主容器宽度已放大到接近全屏
-- 正在答题状态下，答题壳体高度提高到接近 `90vh`
-- 已引入更儿童化字体，并按角色分配：
-  - 标题：手写/绘本感
-  - 按钮/贴纸/选项：圆润卡通感
-  - 正文说明：更柔和、易读
+当前体验特征：
 
-#### 开屏 / 结束 / 播放
+- 学生端大部分题型已做成更偏卡通的互动界面
+- 单屏模式已接入，针对电脑和 iPad 持续优化
+- 听音做指令题已支持：
+  - 点击区域
+  - 拖拽物放置
+  - 场景图与目标区域配置
 
-- `StudentOpeningOverlay`
-  - 已接入较强的 GSAP 入场动画
-- `StudentFinishOverlay`
-  - 已升级为更明显的奖励式结束动画
-  - 当前包含：
-    - `finish-ribbon`
-    - `finish-mascot`
-    - `finish-burst`
-    - confetti
-- `PlaybackAnimalOverlay`
-  - 已保留播放浮层，但去掉了“听音播放中”这类状态标题
-  - 当前版本已经放大卡片、主形象、光晕和音波条
+### 4. 报告页 / 本卷答题情况页面
 
-#### 听音选图
+支持：
 
-- 当前方向：贴纸卡片感
-- 已经去掉多余外框层
-- 图片改为完整显示优先（`object-fit: contain`）
-- 图片展示区已放大，避免裁切
-- 仍可继续优化点：
-  - 卡片排布可以继续更像“散放贴纸”
-  - 选中成功反馈可以再明显一些
+- 查看当前卷子的结果
+- 查看本卷答题记录
+- 不能切换别的卷子
+- 只能按学生姓名 / 手机号筛选
+- 报告页支持导出图片和 HTML
 
-#### 看图选词
+## 当前后端状态
 
-- 已改成新模型：
-  - 单张目标图片
-  - 多个文字选项
-  - 其中一个为正确答案
-- 学生端当前结构：
-  - 上面目标图
-  - 下面单词贴纸
-- 已解决：
-  - 旧的“每个选项一张图”不再使用
-  - 图片完整显示优先
-- 当前仍需继续打磨：
-  - 版式仍然偏空
-  - 词贴纸和目标图的整体舞台感还可以更好
+已经接入：
 
-#### 听字母
+- Express
+- mysql2
+- dotenv
+- cors
 
-- 已从“方框 + 字母池”改成：
-  - 上方两个“小窝”
-  - 下方散落字母
-- 已去掉：
-  - 小熊
-  - 中间提示条
-  - 大写框 / 小写框标签
-- 当前已实现：
-  - 真拖拽主玩法
-  - 拖进小窝吸附
-  - 未命中回弹
-  - 小窝命中高亮
-- 当前已开始尝试 `ghost` 跟手拖拽方向，但仍在细调手感和视觉，后续还需要继续收口
+已实现 API：
 
-#### 图片连线
+- `GET /api/health`
+- `GET /api/papers`
+- `GET /api/papers/:paperId`
+- `POST /api/papers`
+- `PUT /api/papers/:paperId`
+- `DELETE /api/papers/:paperId`
+- `POST /api/papers/:paperId/copy`
+- `GET /api/papers/:paperId/submissions`
+- `POST /api/papers/:paperId/submissions`
 
-- 已经去掉学生端技术味编号
-- 当前方向：贴纸式配对小游戏
-- 已增加轻量状态反馈：
-  - 点我开始
-  - 准备配对
-  - 配对成功
-- 后续仍可继续增强：
-  - 配对成功时的更明显反馈动画
+## 数据库
 
-### 当前仍明显偏“卷子感”的题型
+数据库名：
 
-这些题型还没有彻底游戏化，后续建议继续优化：
+- `kids_english`
 
-- 听题口答 `listen_answer_question`
-- 跟读练习 `read_aloud`
-- 图文跟读 `read_sentence_with_image`
-- 拼写填空 `spell_blank`
-- 拖拽组句 `sentence_sort`
+当前表：
 
-其中：
+- `papers`
+- `paper_questions`
+- `submissions`
+- `submission_answers`
 
-- `spell_blank` 当前最像做卷子（输入框强）
-- `listen_answer_question / read_aloud / read_sentence_with_image` 当前更像录音台，而不是小游戏
+视图：
 
-## 看图选词当前数据模型
+- `vw_paper_summary`
 
-当前 `look_choose_word` 采用新模型：
-
-- `imageUrl`
-- `choices: [{ id, word }]`
-- `correctChoiceId`
-
-规范化后用于学生端展示的数据：
-
-- `imageUrl`
-- `targetWord`
-- `options`
-
-## 听字母当前交互说明
-
-当前 `listen_choose_letter` 仍保留 store 里的这些事件接口：
-
-- `set-letter-slot`
-- `clear-letter-slot`
-
-学生端组件内部负责：
-
-- 散落字母的拖拽表现
-- 命中检测
-- 回弹动画
-- 小窝高亮
-
-## 当前使用的动画能力
-
-- `gsap`
-  - 开屏动画
-  - 结束动画
-  - 播放浮层
-- `canvas-confetti`
-  - 结束动画
-  - 奖励转盘
-- `CSS animation / transition`
-  - 贴纸悬浮
-  - 字母漂浮
-  - 各类轻量交互反馈
-- `speechSynthesis`
-  - 单词/字母/问题播放（浏览器原生）
-
-## iPad / 平板适配现状
-
-已经做过一轮真实自测：
-
-- iPad 横屏
-- iPad 竖屏
-
-当前确认：
-
-- 没有明显横向溢出
-- 主容器宽度利用率已提升
-- 题目页能正常展示与切换
-
-但注意：
-
-- “不炸”不代表“好看”
-- 当前仍然需要继续用截图审美巡检，而不是只看布局是否溢出
-
-## 老师端默认管理员
-
-- 用户名：`admin`
-- 密码：`123456`
-
-## 常用启动命令
+## 当前启动方式
 
 在项目根目录执行：
 
 ```bash
-npm install
-npm run api
-npm run serve
+npm start
 ```
 
-默认地址：
+会同时启动：
 
-- 前端：`http://127.0.0.1:8080`
-- 后端：`http://127.0.0.1:3001`
+- 前端 Vue 开发服务
+- 后端 API 服务
 
-## 当前常用测试方式
+## 当前项目状态总结
 
-### 代码测试
+一句话概括：
 
-当前常用 Node 测试包括：
+- 基础产品结构已经搭完
+- 卷子、题目、答题记录已经走正式数据库
+- 老师端基础管理能力已经可用
+- 学生端已经明显往儿童互动体验方向走
+- 关键保存校验正在逐步补齐
 
-- `tests/antDesignMigration.test.cjs`
-- `tests/studentExperience.test.cjs`
-- `tests/playbackOverlay.test.cjs`
-- `tests/studentGamefeel.test.cjs`
-- `tests/lookChooseWord.test.cjs`
-- `tests/listenChooseLetterPlayful.test.cjs`
-- `tests/matchImageWordGamefeel.test.cjs`
-- `tests/paperEditorHeader.test.cjs`
-- 以及原有业务测试若干
+## 当前仍需持续完善的方向
 
-### 页面真实自测
+优先级建议：
 
-本地页面巡检临时目录使用：
-
-- `D:\temp\englishquestion-webtest-20260414`
-
-当前已经积累过的截图目录包括：
-
-- `artifacts/ipad-check`
-- `artifacts/playback-recheck`
-- `artifacts/listen-image-recheck`
-- `artifacts/look-word-recheck`
-- `artifacts/letter-drag-check`
-- `artifacts/match-finish-check`
-
-## 当前已知待继续优化点
-
-1. 听字母拖拽手感和视觉仍在继续收口
-2. 看图选词版式仍然偏空，需要再压缩比例
-3. 口语类题型（口答 / 跟读 / 图文跟读）仍偏“录音台”
-4. 图片连线可以继续增加更明显的成功反馈
-5. 播放浮层与结束动画已经增强，但如果参考 GSAP Showcase 级别，还可以继续拉大幅度
-
-## 建议的后续优先级
-
-1. 收口 `listen_choose_letter`
-2. 收口 `look_choose_word`
-3. 改造 `listen_answer_question / read_aloud / read_sentence_with_image`
-4. 增强 `match_image_word`
-5. 继续统一全站学生端成功反馈与入场动画
+1. 继续补老师端配置校验与错误提示
+2. 持续优化学生端在电脑 / iPad 下的单屏适配
+3. 优化老师端复杂配置区的排版和交互一致性
+4. 给本卷答题情况页补分页
+5. 接入真实音频生成 / 图片生成 / 语音评分接口
+6. 完善登录、权限、老师端账号体系

@@ -51,8 +51,8 @@ const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
 const { REPORT_ABILITIES, getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilitiesUtils;
 const { evaluateNewQuestionAnswer } = questionTypeSupport;
 const { buildWeightedAbilityMap, toAbilityItems } = reportAbilitiesUtils;
-const { normalizeReportCommentConfig, resolveReportComments } = reportCommentsUtils;
-const { chooseSpeechVoice, normalizeRewardConfig } = studentExperienceUtils;
+const { normalizeReportCommentConfig, resolveReportComments, validateReportCommentConfig } = reportCommentsUtils;
+const { chooseSpeechVoice, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
 
 function createEmptyEditingPaper() {
   const config = defaultConfig();
@@ -246,6 +246,8 @@ export function useExamStore() {
 
   const editingTotalScore = computed(() => getTotalScore(state.editingPaper.questions));
   const editingScoreSummary = computed(() => getPaperScoreSummary(state.editingPaper.questions));
+  const editingCommentValidation = computed(() => validateReportCommentConfig(state.editingPaper.commentConfig || {}));
+  const editingRewardValidation = computed(() => validateRewardConfig(state.editingPaper.rewardConfig || {}));
   const totalScore = computed(() => getTotalScore((state.config?.questions) || []));
   const currentQuestion = computed(() => getCurrentQuestion());
   const currentAnswer = computed(() => {
@@ -345,6 +347,8 @@ export function useExamStore() {
     TYPE_META,
     editingTotalScore,
     editingScoreSummary,
+    editingCommentValidation,
+    editingRewardValidation,
     totalScore,
     currentQuestion,
     currentAnswer,

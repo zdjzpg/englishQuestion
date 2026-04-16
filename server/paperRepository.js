@@ -4,12 +4,14 @@ const paperValidation = require('../src/shared/paperValidation');
 const paperEditPolicy = require('../src/shared/paperEditPolicy');
 const questionAbilities = require('../src/shared/questionAbilities');
 const studentExperience = require('../src/shared/studentExperience');
+const reportComments = require('../src/shared/reportComments');
 
 const { getMissingStudentFields } = studentValidation;
 const { getPaperScoreSummary } = paperValidation;
 const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
 const { getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilities;
-const { normalizeRewardConfig, pickRewardItem } = studentExperience;
+const { normalizeRewardConfig, pickRewardItem, validateRewardConfig } = studentExperience;
+const { validateReportCommentConfig } = reportComments;
 
 function parseQuestionRow(row) {
   return {
@@ -375,6 +377,18 @@ async function savePaper({ paperId = null, examTitle, themeNote, welcomeSpeech, 
   const scoreSummary = getPaperScoreSummary(questions);
   if (!scoreSummary.isValid) {
     const error = new Error(scoreSummary.message);
+    error.statusCode = 400;
+    throw error;
+  }
+  const commentValidation = validateReportCommentConfig(commentConfig);
+  if (!commentValidation.isValid) {
+    const error = new Error(commentValidation.message);
+    error.statusCode = 400;
+    throw error;
+  }
+  const rewardValidation = validateRewardConfig(rewardConfig);
+  if (!rewardValidation.isValid) {
+    const error = new Error(rewardValidation.message);
     error.statusCode = 400;
     throw error;
   }

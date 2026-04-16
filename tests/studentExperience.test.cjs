@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const {
   chooseSpeechVoice,
   normalizeRewardConfig,
-  pickRewardItem
+  pickRewardItem,
+  validateRewardConfig
 } = require('../src/shared/studentExperience');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -61,6 +62,32 @@ test('pickRewardItem selects the weighted item based on roll', () => {
   assert.equal(item.name, '铅笔');
 });
 
+test('validateRewardConfig rejects enabled rewards when probabilities do not sum to 100', () => {
+  const result = validateRewardConfig({
+    enabled: true,
+    items: [
+      { id: '1', name: '贴纸', probability: 60 },
+      { id: '2', name: '铅笔', probability: 30 },
+      { id: '3', name: '小礼物', probability: 20 }
+    ]
+  });
+
+  assert.equal(result.isValid, false);
+  assert.match(result.message, /100/);
+});
+
+test('validateRewardConfig rejects enabled rewards when an item probability is not positive', () => {
+  const result = validateRewardConfig({
+    enabled: true,
+    items: [
+      { id: '1', name: '贴纸', probability: 0 }
+    ]
+  });
+
+  assert.equal(result.isValid, false);
+  assert.match(result.message, /概率/);
+});
+
 test('student overlays include delayed finish CTA and separate reward result card structure', () => {
   const openingSource = read('src/components/shared/StudentOpeningOverlay.vue');
   const finishSource = read('src/components/shared/StudentFinishOverlay.vue');
@@ -87,9 +114,13 @@ test('student overlays include delayed finish CTA and separate reward result car
   assert.match(wheelSource, /reward-result-card/);
   assert.match(wheelSource, /reward-result-burst/);
   assert.match(paperViewSource, /paper-view-shell-intake/);
+  assert.match(paperViewSource, /paper-view-shell-report/);
   assert.match(stylesSource, /\.paper-view-shell-intake\s*\{/);
+  assert.match(stylesSource, /body\.report-single-screen/);
+  assert.match(stylesSource, /\.paper-view-shell-report\s*\{/);
   assert.match(newPaperViewSource, /ListenChooseImageEditor/);
   assert.match(newPaperViewSource, /admin-question-card-actions/);
+  assert.match(newPaperViewSource, /replace-text="[\s\S]*compact[\s\S]*layout="side-actions"/);
   assert.match(configuredPapersViewSource, /编辑卷子/);
   assert.match(configuredPapersViewSource, /canEditPaper\(record\)/);
   assert.match(configuredPapersViewSource, /admin-papers-actions/);
@@ -100,6 +131,9 @@ test('student overlays include delayed finish CTA and separate reward result car
   assert.match(listenChooseLetterSource, /letter-home-shell/);
   assert.match(listenChooseLetterSource, /set-letter-slot/);
   assert.match(paperViewSource, /@set-letter-slot=/);
+  assert.match(paperViewSource, /downloadReportImage/);
+  assert.match(paperViewSource, /downloadCurrentReport/);
+  assert.doesNotMatch(paperViewSource, /router\.push\(\{ name: 'answers', query: \{ paperId: state\.currentPaperId \} \}\)/);
   assert.match(stylesSource, /\.image-upload-field\.compact \.image-upload-preview-img\s*\{/);
   assert.match(stylesSource, /\.image-upload-field\.compact\s*\{/);
   assert.match(stylesSource, /\.image-upload-actions\.compact\s*\{/);

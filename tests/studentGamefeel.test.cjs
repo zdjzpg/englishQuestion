@@ -24,8 +24,9 @@ test('listen choose image and look choose word use more playful student-side str
   assert.match(stylesSource, /\.look-word-stage\s*\{/);
   assert.match(stylesSource, /\.word-sticker\s*\{/);
   assert.match(stylesSource, /\.choice-image\s*\{[\s\S]*object-fit:\s*contain;/);
-  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[\s\S]*border:/);
-  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[\s\S]*background:/);
+  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[^}]*border:/);
+  assert.doesNotMatch(stylesSource, /\.choice-image-board\s*\{[^}]*background:/);
+  assert.doesNotMatch(stylesSource, /\.look-word-image-card\s*\{[^}]*border:/);
 });
 
 test('look choose word fills the question stage with a larger visual focus', () => {

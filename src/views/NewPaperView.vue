@@ -71,6 +71,7 @@
                     button-text="上传礼品图"
                     replace-text="更换礼品图"
                     compact
+                    layout="side-actions"
                     @update:modelValue="item.imageUrl = $event"
                   />
                   <a-input v-model:value="item.name" placeholder="礼品名称" />

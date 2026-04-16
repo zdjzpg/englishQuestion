@@ -26,7 +26,7 @@
 
   <div
     v-if="state.currentPaper"
-    :class="['app-shell', { 'paper-view-shell-intake': isIntakeState, 'paper-view-shell-exam': isExamState }]"
+    :class="['app-shell', { 'paper-view-shell-intake': isIntakeState, 'paper-view-shell-exam': isExamState, 'paper-view-shell-report': isReportState }]"
   >
     <template v-if="!state.sessionStarted && !state.report">
       <div class="hero">
@@ -149,7 +149,6 @@
               <p class="hero-subtitle">学生：{{ state.student.name || '-' }} · 学校：{{ state.student.school || '-' }} · 联系方式：{{ state.student.phone || '-' }}</p>
             </div>
             <div class="hero-actions">
-              <button class="btn btn-ghost" @click="router.push({ name: 'answers', query: { paperId: state.currentPaperId } })">查看本卷答题情况</button>
               <button class="btn btn-secondary" @click="downloadReportImage">导出报告图片</button>
               <button class="btn btn-primary" @click="downloadCurrentReport">下载报告 HTML</button>
             </div>
@@ -208,7 +207,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { toPng } from 'html-to-image';
-import { useRouter } from 'vue-router';
 import ListenAnswerQuestion from '../components/questions/ListenAnswerQuestion.vue';
 import ListenChooseImage from '../components/questions/ListenChooseImage.vue';
 import ListenChooseLetter from '../components/questions/ListenChooseLetter.vue';
@@ -227,8 +225,6 @@ import StudentOpeningOverlay from '../components/shared/StudentOpeningOverlay.vu
 import layoutScaleUtils from '../shared/layoutScale';
 import questionAbilitiesUtils from '../shared/questionAbilities';
 import { useExamStore } from '../store/examStore';
-
-const router = useRouter();
 const { REPORT_ABILITIES } = questionAbilitiesUtils;
 const { calculateContainScale } = layoutScaleUtils;
 const {
@@ -280,6 +276,7 @@ const showIntakeErrors = computed(() => intakeAttempted.value);
 const rewardItems = computed(() => state.currentPaper?.rewardConfig?.items || []);
 const isIntakeState = computed(() => Boolean(state.currentPaper && !state.sessionStarted && !state.report));
 const isExamState = computed(() => Boolean(state.currentPaper && state.sessionStarted && !state.report));
+const isReportState = computed(() => Boolean(state.currentPaper && state.report));
 const reportAbilityItems = computed(() => REPORT_ABILITIES
   .filter((label) => state.report?.abilityMap?.[label]?.total > 0)
   .map((label) => {
@@ -303,9 +300,14 @@ let scaleFrameId = null;
 let scaleObserver = null;
 
 const EXAM_BODY_CLASS = 'exam-single-screen';
+const REPORT_BODY_CLASS = 'report-single-screen';
 
 function setExamBodyClass(active) {
   document.body.classList.toggle(EXAM_BODY_CLASS, active);
+}
+
+function setReportBodyClass(active) {
+  document.body.classList.toggle(REPORT_BODY_CLASS, active);
 }
 
 function clearScaleObserver() {
@@ -415,6 +417,10 @@ watch(isExamState, async (active) => {
   scheduleQuestionScale();
 }, { immediate: true });
 
+watch(isReportState, (active) => {
+  setReportBodyClass(active);
+}, { immediate: true });
+
 watch(() => currentQuestion.value?.id, async () => {
   if (!isExamState.value) {
     return;
@@ -438,6 +444,7 @@ onBeforeUnmount(() => {
   }
   clearScaleObserver();
   setExamBodyClass(false);
+  setReportBodyClass(false);
   window.removeEventListener('resize', scheduleQuestionScale);
 });
 </script>

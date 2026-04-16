@@ -16,9 +16,13 @@ function getCssBlock(source, selector) {
 
 test('compact image upload stays stacked inside narrow admin editor columns', () => {
   const stylesSource = read('src/styles.css');
+  const fieldSource = read('src/components/editors/ImageUploadField.vue');
   const compactFieldBlock = getCssBlock(stylesSource, '.image-upload-field.compact');
   const compactActionsBlock = getCssBlock(stylesSource, '.image-upload-actions.compact');
 
+  assert.match(fieldSource, /v-if="props\.compact"/);
+  assert.match(fieldSource, /list-type="picture-card"/);
+  assert.match(fieldSource, /showRemoveIcon:\s*true/);
   assert.match(compactFieldBlock, /grid-template-columns:\s*1fr;/);
   assert.match(compactActionsBlock, /display:\s*grid;/);
   assert.match(compactActionsBlock, /justify-items:\s*start;/);

@@ -82,7 +82,7 @@ const { buildTeacherNavItems, getTeacherPageMeta, isTeacherRoute } = adminLayout
 
 const route = useRoute();
 const router = useRouter();
-const { state, logout, editingScoreSummary, saveEditingPaper } = useExamStore();
+const { state, logout, editingScoreSummary, editingCommentValidation, editingRewardValidation, saveEditingPaper } = useExamStore();
 
 const showTeacherShell = computed(() => isTeacherRoute(route));
 const pageMeta = computed(() => getTeacherPageMeta(String(route.name || '')));
@@ -109,6 +109,14 @@ function navigate(target) {
 async function savePaper() {
   if (!editingScoreSummary.value.isValid) {
     message.warning(editingScoreSummary.value.message || '卷子总分必须等于 100 分后才能保存。');
+    return;
+  }
+  if (!editingCommentValidation.value.isValid) {
+    message.warning(editingCommentValidation.value.message || '报告评语的分数段不能重复。');
+    return;
+  }
+  if (!editingRewardValidation.value.isValid) {
+    message.warning(editingRewardValidation.value.message || '转盘奖品概率配置不正确。');
     return;
   }
   try {

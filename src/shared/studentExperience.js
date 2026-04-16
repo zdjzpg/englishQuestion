@@ -31,6 +31,57 @@ function normalizeRewardConfig(config = {}) {
   };
 }
 
+function validateRewardConfig(config = {}) {
+  if (config.enabled !== true) {
+    return {
+      isValid: true,
+      message: ''
+    };
+  }
+
+  const items = Array.isArray(config.items) ? config.items : [];
+  if (!items.length) {
+    return {
+      isValid: false,
+      message: '开启转盘抽奖后，至少要配置一个礼品。'
+    };
+  }
+
+  let totalProbability = 0;
+  for (const item of items) {
+    const name = String(item?.name || '').trim();
+    const probability = Number(item?.probability);
+
+    if (!name) {
+      return {
+        isValid: false,
+        message: '请填写每个转盘礼品的名称。'
+      };
+    }
+
+    if (!Number.isFinite(probability) || probability <= 0) {
+      return {
+        isValid: false,
+        message: '每个转盘礼品的概率必须大于 0。'
+      };
+    }
+
+    totalProbability += probability;
+  }
+
+  if (totalProbability !== 100) {
+    return {
+      isValid: false,
+      message: `转盘奖品概率总和必须等于 100，当前为 ${totalProbability}。`
+    };
+  }
+
+  return {
+    isValid: true,
+    message: ''
+  };
+}
+
 function createDefaultRewardConfig() {
   return {
     enabled: false,
@@ -67,5 +118,6 @@ module.exports = {
   chooseSpeechVoice,
   createDefaultRewardConfig,
   normalizeRewardConfig,
-  pickRewardItem
+  pickRewardItem,
+  validateRewardConfig
 };

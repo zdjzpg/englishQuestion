@@ -13,9 +13,9 @@
       <div class="instruction-script">{{ question.instructionText }}</div>
     </div>
 
-    <div ref="stageRef" class="student-instruction-stage">
+    <div ref="stageRef" class="student-instruction-stage" :style="stageStyle">
       <template v-if="resolvedImageUrl">
-        <img :src="resolvedImageUrl" alt="instruction scene" class="student-instruction-image" />
+        <img :src="resolvedImageUrl" alt="instruction scene" class="student-instruction-image" @load="handleImageLoad" />
 
         <template v-if="isDragMode">
           <button
@@ -27,7 +27,7 @@
             :style="targetStyle(target)"
             @click="placeObjectOnTarget(target.id)"
           >
-            <span>{{ target.label || target.id }}</span>
+            <span v-if="target.label">{{ target.label }}</span>
           </button>
 
           <button
@@ -58,7 +58,7 @@
             :style="targetStyle(target)"
             @click="$emit('select', target.id)"
           >
-            <span>{{ target.label }}</span>
+            <span v-if="target.label">{{ target.label }}</span>
           </button>
         </template>
       </template>
@@ -89,6 +89,7 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'speak']);
 const stageRef = ref(null);
+const sceneImageSize = ref({ width: 0, height: 0 });
 const isDragging = ref(false);
 const hoveredTargetId = ref('');
 const dragObjectPosition = ref({ x: 14, y: 70 });
@@ -104,6 +105,14 @@ const objectSize = computed(() => clampToRange(draggableObject.value.size, 8, 36
 const helperText = computed(() => (
   isDragMode.value ? '听清指令后，把物体拖到正确区域。' : '听清指令后，点击图片里的正确区域。'
 ));
+const stageStyle = computed(() => {
+  if (!sceneImageSize.value.width || !sceneImageSize.value.height) {
+    return {};
+  }
+  return {
+    aspectRatio: `${sceneImageSize.value.width} / ${sceneImageSize.value.height}`
+  };
+});
 const dragObjectStyle = computed(() => ({
   left: `${dragObjectPosition.value.x}%`,
   top: `${dragObjectPosition.value.y}%`,
@@ -125,6 +134,17 @@ function targetStyle(target) {
     top: `${target.y}%`,
     width: `${target.width}%`,
     height: `${target.height}%`
+  };
+}
+
+function handleImageLoad(event) {
+  const image = event.target;
+  if (!image?.naturalWidth || !image?.naturalHeight) {
+    return;
+  }
+  sceneImageSize.value = {
+    width: image.naturalWidth,
+    height: image.naturalHeight
   };
 }
 
@@ -249,6 +269,10 @@ watch(
   syncDragObjectPosition,
   { immediate: true, deep: true }
 );
+
+watch(() => props.question.imageUrl, () => {
+  sceneImageSize.value = { width: 0, height: 0 };
+});
 
 onMounted(() => {
   if (props.question.autoPlay) {

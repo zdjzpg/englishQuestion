@@ -56,17 +56,9 @@
 <script setup>
 /* global defineProps, defineEmits */
 import { computed, onBeforeUnmount, ref } from 'vue';
+import listenChooseLetterLayoutUtils from '../../shared/listenChooseLetterLayout';
 
-const SCATTER_LAYOUTS = [
-  { left: '7%', top: '50%', rotate: '-10deg' },
-  { left: '20%', top: '14%', rotate: '8deg' },
-  { left: '34%', top: '46%', rotate: '-5deg' },
-  { left: '48%', top: '10%', rotate: '11deg' },
-  { left: '62%', top: '44%', rotate: '-12deg' },
-  { left: '79%', top: '16%', rotate: '7deg' },
-  { left: '14%', top: '70%', rotate: '6deg' },
-  { left: '72%', top: '68%', rotate: '-7deg' }
-];
+const { buildLetterScatterLayouts } = listenChooseLetterLayoutUtils;
 
 const props = defineProps({
   question: { type: Object, required: true },
@@ -116,8 +108,11 @@ const letterSlots = computed(() => {
   ];
 });
 
-const looseLetters = computed(() => displayOptions.value.map((letter, index) => {
-  const layout = SCATTER_LAYOUTS[index % SCATTER_LAYOUTS.length];
+const looseLetters = computed(() => {
+  const layouts = buildLetterScatterLayouts(displayOptions.value);
+
+  return displayOptions.value.map((letter, index) => {
+    const layout = layouts[index];
   const seed = String(letter || '')
     .split('')
     .reduce((sum, ch) => sum + ch.charCodeAt(0), 0) + index * 17;
@@ -155,7 +150,8 @@ const looseLetters = computed(() => displayOptions.value.map((letter, index) => 
       '--delay': `${delay}s`
     }
   };
-}));
+  });
+});
 
 function setHomeRef(key, node) {
   if (node) {

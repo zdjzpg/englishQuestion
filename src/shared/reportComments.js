@@ -13,6 +13,27 @@ function createDefaultReportCommentConfig() {
   };
 }
 
+function validateReportCommentConfig(config = {}) {
+  const bands = Array.isArray(config.bands) ? config.bands : [];
+  const seen = new Set();
+
+  for (const item of bands) {
+    const minScore = Math.max(0, Number(item?.minScore || 0));
+    if (seen.has(minScore)) {
+      return {
+        isValid: false,
+        message: `报告评语的分数段不能重复，${minScore} 分已被设置过。`
+      };
+    }
+    seen.add(minScore);
+  }
+
+  return {
+    isValid: true,
+    message: ''
+  };
+}
+
 function normalizeReportCommentConfig(config = {}) {
   return {
     opening: String(config.opening || '').trim(),
@@ -43,5 +64,6 @@ function resolveReportComments(config, totalScore) {
 module.exports = {
   createDefaultReportCommentConfig,
   normalizeReportCommentConfig,
-  resolveReportComments
+  resolveReportComments,
+  validateReportCommentConfig
 };
