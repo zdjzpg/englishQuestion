@@ -141,6 +141,7 @@
                     <strong>{{ TYPE_META[question.type].icon }} {{ TYPE_META[question.type].label }}</strong>
                   </div>
                   <a-space wrap class="admin-question-card-actions">
+                    <a-tag :color="getQuestionDifficultyColor(question.difficulty)">{{ questionDifficultyLabel(question) }}</a-tag>
                     <a-tag>{{ questionAbilityLabel(question) }}</a-tag>
                     <a-button size="small" @click="duplicateQuestion(question.id)">复制</a-button>
                     <a-button size="small" danger @click="removeQuestion(question.id)">删除</a-button>
@@ -155,6 +156,13 @@
                   </a-form-item>
                   <a-form-item label="本题分数">
                     <a-input-number v-model:value="question.score" :min="0" :style="{ width: '100%' }" />
+                  </a-form-item>
+                  <a-form-item label="题目等级">
+                    <a-select
+                      v-model:value="question.difficulty"
+                      :options="questionDifficultyOptions"
+                      placeholder="请选择题目等级"
+                    />
                   </a-form-item>
                   <a-form-item class="field-span-full" label="能力维度">
                     <a-select
@@ -285,6 +293,7 @@ import ImageUploadField from '../components/editors/ImageUploadField.vue';
 import ListenChooseImageEditor from '../components/editors/ListenChooseImageEditor.vue';
 import LookChooseWordEditor from '../components/editors/LookChooseWordEditor.vue';
 import questionAbilitiesUtils from '../shared/questionAbilities';
+import questionDifficultyUtils from '../shared/questionDifficulty';
 import reportCommentsUtils from '../shared/reportComments';
 import { uid } from '../utils/content';
 
@@ -299,10 +308,16 @@ const {
   removeQuestion
 } = useExamStore();
 const { REPORT_ABILITIES, getDefaultAbilitiesForType } = questionAbilitiesUtils;
+const {
+  QUESTION_DIFFICULTY_OPTIONS,
+  getQuestionDifficultyColor,
+  getQuestionDifficultyLabel
+} = questionDifficultyUtils;
 const { createDefaultReportCommentConfig } = reportCommentsUtils;
 const HIDDEN_QUESTION_TYPES = ['sentence_sort', 'spell_blank', 'read_sentence_with_image', 'match_image_word'];
 
 const abilityOptions = REPORT_ABILITIES.map((value) => ({ label: value, value }));
+const questionDifficultyOptions = QUESTION_DIFFICULTY_OPTIONS;
 const visibleTypeMeta = computed(() => Object.fromEntries(
   Object.entries(TYPE_META).filter(([type]) => !HIDDEN_QUESTION_TYPES.includes(type))
 ));
@@ -394,6 +409,10 @@ function questionAbilityLabel(question) {
     ? question.abilities
     : getDefaultAbilitiesForType(question.type);
   return labels.length ? `${labels.join(' / ')}能力` : '未配置能力';
+}
+
+function questionDifficultyLabel(question) {
+  return getQuestionDifficultyLabel(question.difficulty);
 }
 
 function handleAbilityChange(question, values) {

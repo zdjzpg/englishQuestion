@@ -236,7 +236,7 @@ const {
   createRectTarget,
   normalizeDraggableObject
 } = followInstructionUtils;
-const { chooseSpeechVoice } = studentExperienceUtils;
+const { loadSpeechVoices, resolveSpeechPlaybackSettings } = studentExperienceUtils;
 
 const props = defineProps({
   question: { type: Object, required: true }
@@ -349,16 +349,18 @@ function previewInstruction() {
   if (!window.speechSynthesis || !props.question.instructionText) {
     return;
   }
+  void loadSpeechVoices(window.speechSynthesis);
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(props.question.instructionText);
   const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-  const selectedVoice = chooseSpeechVoice(voices);
+  const speechSettings = resolveSpeechPlaybackSettings(voices);
   utter.rate = 0.9;
   utter.pitch = 1.05;
-  if (selectedVoice) {
-    utter.voice = selectedVoice;
-    utter.lang = selectedVoice.lang || 'en-US';
+  utter.lang = speechSettings.lang;
+  if (speechSettings.voice) {
+    utter.voice = speechSettings.voice;
   }
+  window.speechSynthesis.resume?.();
   window.speechSynthesis.speak(utter);
 }
 

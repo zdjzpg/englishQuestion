@@ -17,6 +17,13 @@ test('answers actions include a row-level report image export handler with loadi
   assert.match(viewSource, /@click="downloadSubmissionReportImage\(record\)"/, 'expected row-level report image handler');
 });
 
+test('answers image export builds the same report snapshot as the student report screen', () => {
+  assert.match(viewSource, /import submissionReportSnapshotUtils from '\.\.\/shared\/submissionReportSnapshot'/, 'expected shared snapshot helper import');
+  assert.match(viewSource, /const \{ buildSubmissionReportSnapshot \} = submissionReportSnapshotUtils;/, 'expected shared snapshot helper usage');
+  assert.match(viewSource, /const snapshot = buildSubmissionReportSnapshot\(/, 'expected export flow to build a full report snapshot');
+  assert.match(viewSource, /createApp\(SubmissionReportCapture,\s*snapshot\)/, 'expected export flow to mount the shared snapshot');
+});
+
 test('submission list query returns stored report json for row-level image generation', () => {
   assert.match(repositorySource, /s\.report_json/, 'expected submission query to read report_json');
   assert.match(repositorySource, /abilityItems:\s*Array\.isArray\(reportData\.abilityItems\)/, 'expected parsed report data to keep ability items');

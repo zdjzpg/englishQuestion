@@ -3,15 +3,19 @@ const studentValidation = require('../src/shared/studentValidation');
 const paperValidation = require('../src/shared/paperValidation');
 const paperEditPolicy = require('../src/shared/paperEditPolicy');
 const questionAbilities = require('../src/shared/questionAbilities');
+const questionDifficulty = require('../src/shared/questionDifficulty');
 const studentExperience = require('../src/shared/studentExperience');
 const reportComments = require('../src/shared/reportComments');
+const followInstruction = require('../src/shared/followInstruction');
 
 const { getMissingStudentFields } = studentValidation;
 const { getPaperScoreSummary } = paperValidation;
 const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
 const { getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilities;
+const { normalizeQuestionDifficulty } = questionDifficulty;
 const { normalizeRewardConfig, pickRewardItem, validateRewardConfig } = studentExperience;
 const { validateReportCommentConfig } = reportComments;
+const { validateInstructionQuestion } = followInstruction;
 
 function parseQuestionRow(row) {
   return {
@@ -33,6 +37,7 @@ function hydrateQuestion(row) {
 function buildQuestionContent(question, content) {
   return {
     abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type)),
+    difficulty: normalizeQuestionDifficulty(question.difficulty),
     ...content
   };
 }
@@ -391,6 +396,14 @@ async function savePaper({ paperId = null, examTitle, themeNote, welcomeSpeech, 
     const error = new Error(rewardValidation.message);
     error.statusCode = 400;
     throw error;
+  }
+  for (let index = 0; index < questions.length; index += 1) {
+    const instructionValidation = validateInstructionQuestion(questions[index], index);
+    if (!instructionValidation.isValid) {
+      const error = new Error(instructionValidation.message);
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   const normalizedRewardConfig = normalizeRewardConfig(rewardConfig);

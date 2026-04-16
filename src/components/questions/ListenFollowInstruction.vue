@@ -13,54 +13,56 @@
       <div class="instruction-script">{{ question.instructionText }}</div>
     </div>
 
-    <div ref="stageRef" class="student-instruction-stage" :style="stageStyle">
+    <div ref="stageViewportRef" class="student-instruction-stage">
       <template v-if="resolvedImageUrl">
-        <img :src="resolvedImageUrl" alt="instruction scene" class="student-instruction-image" @load="handleImageLoad" />
+        <div ref="stageRef" class="student-instruction-scene" :style="sceneFrameStyle">
+          <img :src="resolvedImageUrl" alt="instruction scene" class="student-instruction-image" @load="handleImageLoad" />
 
-        <template v-if="isDragMode">
-          <button
-            v-for="target in targets"
-            :key="target.id"
-            type="button"
-            class="student-drop-target"
-            :class="{ selected: answer.selected === target.id, hovered: hoveredTargetId === target.id }"
-            :style="targetStyle(target)"
-            @click="placeObjectOnTarget(target.id)"
-          >
-            <span v-if="target.label">{{ target.label }}</span>
-          </button>
+          <template v-if="isDragMode">
+            <button
+              v-for="target in targets"
+              :key="target.id"
+              type="button"
+              class="student-drop-target"
+              :class="{ selected: answer.selected === target.id, hovered: hoveredTargetId === target.id }"
+              :style="targetStyle(target)"
+              @click="placeObjectOnTarget(target.id)"
+            >
+              <span v-if="target.label">{{ target.label }}</span>
+            </button>
 
-          <button
-            type="button"
-            class="student-drag-object"
-            :class="{ dragging: isDragging }"
-            :style="dragObjectStyle"
-            @pointerdown.prevent="startDrag"
-          >
-            <img
-              v-if="draggableObject.imageUrl"
-              :src="draggableObject.imageUrl"
-              :alt="draggableObject.label"
-              class="student-drag-object-image"
-              draggable="false"
-            />
-            <span v-else class="student-drag-object-text">{{ draggableObject.label }}</span>
-          </button>
-        </template>
+            <button
+              type="button"
+              class="student-drag-object"
+              :class="{ dragging: isDragging }"
+              :style="dragObjectStyle"
+              @pointerdown.prevent="startDrag"
+            >
+              <img
+                v-if="draggableObject.imageUrl"
+                :src="draggableObject.imageUrl"
+                :alt="draggableObject.label"
+                class="student-drag-object-image"
+                draggable="false"
+              />
+              <span v-else class="student-drag-object-text">{{ draggableObject.label }}</span>
+            </button>
+          </template>
 
-        <template v-else>
-          <button
-            v-for="target in targets"
-            :key="target.id"
-            type="button"
-            class="student-hit-target"
-            :class="{ selected: answer.selected === target.id }"
-            :style="targetStyle(target)"
-            @click="$emit('select', target.id)"
-          >
-            <span v-if="target.label">{{ target.label }}</span>
-          </button>
-        </template>
+          <template v-else>
+            <button
+              v-for="target in targets"
+              :key="target.id"
+              type="button"
+              class="student-hit-target"
+              :class="{ selected: answer.selected === target.id }"
+              :style="targetStyle(target)"
+              @click="$emit('select', target.id)"
+            >
+              <span v-if="target.label">{{ target.label }}</span>
+            </button>
+          </template>
+        </div>
       </template>
       <div v-else class="student-instruction-empty-state">
         这道题还没有上传场景图，请跳过并联系老师完善题目。
@@ -74,12 +76,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { resolveInstructionImage } from '../../utils/content';
 import followInstructionUtils from '../../shared/followInstruction';
+import layoutScaleUtils from '../../shared/layoutScale';
 
 const {
   DEFAULT_DRAGGABLE_OBJECT,
   INSTRUCTION_MODE_DRAG_PLACE,
   normalizeDraggableObject
 } = followInstructionUtils;
+const { calculateContainBox } = layoutScaleUtils;
 
 const props = defineProps({
   question: { type: Object, required: true },
@@ -88,12 +92,15 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['select', 'speak']);
+const stageViewportRef = ref(null);
 const stageRef = ref(null);
+const stageViewportSize = ref({ width: 0, height: 0 });
 const sceneImageSize = ref({ width: 0, height: 0 });
 const isDragging = ref(false);
 const hoveredTargetId = ref('');
 const dragObjectPosition = ref({ x: 14, y: 70 });
 const activePointer = ref(null);
+let stageResizeObserver = null;
 const resolvedImageUrl = computed(() => resolveInstructionImage(props.question.imageUrl));
 const instructionMode = computed(() => (
   props.question.mode === INSTRUCTION_MODE_DRAG_PLACE ? INSTRUCTION_MODE_DRAG_PLACE : 'tap'
@@ -105,12 +112,28 @@ const objectSize = computed(() => clampToRange(draggableObject.value.size, 8, 36
 const helperText = computed(() => (
   isDragMode.value ? '听清指令后，把物体拖到正确区域。' : '听清指令后，点击图片里的正确区域。'
 ));
-const stageStyle = computed(() => {
-  if (!sceneImageSize.value.width || !sceneImageSize.value.height) {
+const sceneFrameStyle = computed(() => {
+  if (!stageViewportSize.value.width || !stageViewportSize.value.height) {
     return {};
   }
+
+  if (!sceneImageSize.value.width || !sceneImageSize.value.height) {
+    return {
+      width: '100%',
+      height: '100%'
+    };
+  }
+
+  const containBox = calculateContainBox({
+    viewportWidth: stageViewportSize.value.width,
+    viewportHeight: stageViewportSize.value.height,
+    contentWidth: sceneImageSize.value.width,
+    contentHeight: sceneImageSize.value.height
+  });
+
   return {
-    aspectRatio: `${sceneImageSize.value.width} / ${sceneImageSize.value.height}`
+    width: `${containBox.width}px`,
+    height: `${containBox.height}px`
   };
 });
 const dragObjectStyle = computed(() => ({
@@ -135,6 +158,31 @@ function targetStyle(target) {
     width: `${target.width}%`,
     height: `${target.height}%`
   };
+}
+
+function syncStageViewportSize() {
+  if (!stageViewportRef.value) {
+    stageViewportSize.value = { width: 0, height: 0 };
+    return;
+  }
+  stageViewportSize.value = {
+    width: stageViewportRef.value.clientWidth,
+    height: stageViewportRef.value.clientHeight
+  };
+}
+
+function bindStageResizeObserver() {
+  syncStageViewportSize();
+  if (!stageViewportRef.value || typeof ResizeObserver === 'undefined') {
+    return;
+  }
+  if (stageResizeObserver) {
+    stageResizeObserver.disconnect();
+  }
+  stageResizeObserver = new ResizeObserver(() => {
+    syncStageViewportSize();
+  });
+  stageResizeObserver.observe(stageViewportRef.value);
 }
 
 function handleImageLoad(event) {
@@ -272,9 +320,11 @@ watch(
 
 watch(() => props.question.imageUrl, () => {
   sceneImageSize.value = { width: 0, height: 0 };
+  syncStageViewportSize();
 });
 
 onMounted(() => {
+  bindStageResizeObserver();
   if (props.question.autoPlay) {
     window.setTimeout(() => emit('speak', { text: props.question.instructionText, questionId: props.question.id, kind: 'listening' }), 150);
   }
@@ -282,5 +332,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cleanupDragListeners();
+  if (stageResizeObserver) {
+    stageResizeObserver.disconnect();
+    stageResizeObserver = null;
+  }
 });
 </script>

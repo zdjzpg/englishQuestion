@@ -3,6 +3,9 @@ const assert = require('node:assert/strict');
 
 const {
   chooseSpeechVoice,
+  createSpeechPlaybackPlan,
+  loadSpeechVoices,
+  resolveSpeechPlaybackSettings,
   normalizeRewardConfig,
   pickRewardItem,
   validateRewardConfig
@@ -30,6 +33,95 @@ test('chooseSpeechVoice falls back to default voice when no english voice exists
   ]);
 
   assert.equal(voice.name, 'Microsoft Huihui');
+});
+
+test('resolveSpeechPlaybackSettings leaves lang empty when voices are not ready yet so browser default speech can still work', () => {
+  const settings = resolveSpeechPlaybackSettings([]);
+
+  assert.equal(settings.voice, null);
+  assert.equal(settings.lang, '');
+});
+
+test('resolveSpeechPlaybackSettings keeps the selected english voice and lang when available', () => {
+  const englishVoice = { name: 'English Voice', lang: 'en-GB', default: false };
+  const settings = resolveSpeechPlaybackSettings([
+    { name: 'Microsoft Huihui', lang: 'zh-CN', default: true },
+    englishVoice
+  ]);
+
+  assert.equal(settings.voice, englishVoice);
+  assert.equal(settings.lang, 'en-GB');
+});
+
+test('loadSpeechVoices returns immediately when voices are already available', async () => {
+  const englishVoice = { name: 'English Voice', lang: 'en-US', default: false };
+  const synth = {
+    getVoices() {
+      return [englishVoice];
+    }
+  };
+
+  const voices = await loadSpeechVoices(synth, 10);
+  assert.deepEqual(voices, [englishVoice]);
+});
+
+test('loadSpeechVoices waits for voiceschanged when voices are not ready yet', async () => {
+  const englishVoice = { name: 'English Voice', lang: 'en-US', default: false };
+  let handlers = [];
+  let ready = false;
+  const synth = {
+    getVoices() {
+      return ready ? [englishVoice] : [];
+    },
+    addEventListener(eventName, handler) {
+      if (eventName === 'voiceschanged') {
+        handlers.push(handler);
+      }
+    },
+    removeEventListener(eventName, handler) {
+      if (eventName === 'voiceschanged') {
+        handlers = handlers.filter((item) => item !== handler);
+      }
+    }
+  };
+
+  const pending = loadSpeechVoices(synth, 30);
+  ready = true;
+  handlers.forEach((handler) => handler());
+  const voices = await pending;
+
+  assert.deepEqual(voices, [englishVoice]);
+});
+
+test('speech playback remains synchronous in the student flow to preserve the click gesture context', () => {
+  const storeSource = read('src/store/examStore.js');
+
+  assert.doesNotMatch(storeSource, /async speak\(payload\)/);
+  assert.doesNotMatch(storeSource, /await loadSpeechVoices\(window\.speechSynthesis\)/);
+});
+
+test('createSpeechPlaybackPlan provides a fallback to browser default speech when a non-default english voice is chosen', () => {
+  const plan = createSpeechPlaybackPlan([
+    { name: 'Microsoft Huihui - Chinese (Simplified, PRC)', lang: 'zh-CN', default: true },
+    { name: 'Google US English', lang: 'en-US', default: false }
+  ]);
+
+  assert.equal(plan.primary.voice.name, 'Google US English');
+  assert.equal(plan.primary.lang, 'en-US');
+  assert.deepEqual(plan.fallback, {
+    voice: null,
+    lang: ''
+  });
+});
+
+test('createSpeechPlaybackPlan skips the fallback when only the default voice is available', () => {
+  const plan = createSpeechPlaybackPlan([
+    { name: 'Microsoft Huihui - Chinese (Simplified, PRC)', lang: 'zh-CN', default: true }
+  ]);
+
+  assert.equal(plan.primary.voice.name, 'Microsoft Huihui - Chinese (Simplified, PRC)');
+  assert.equal(plan.primary.lang, 'zh-CN');
+  assert.equal(plan.fallback, null);
 });
 
 test('normalizeRewardConfig keeps only valid positive-probability items', () => {

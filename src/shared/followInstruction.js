@@ -106,6 +106,37 @@ function normalizeInstructionQuestion(question = {}) {
   };
 }
 
+function createValidationResult(isValid, message = '') {
+  return { isValid, message };
+}
+
+function validateInstructionQuestion(question = {}, index = 0) {
+  if (question.type !== 'listen_follow_instruction') {
+    return createValidationResult(true);
+  }
+
+  const normalized = normalizeInstructionQuestion(question);
+  const questionPrefix = `第 ${Number(index) + 1} 题“听音做指令”`;
+  const hasTargets = normalized.targets.length > 0;
+  const rawCorrectTargetId = String(question.correctTargetId || '').trim();
+  const hasCorrectTarget = Boolean(rawCorrectTargetId)
+    && normalized.targets.some((target) => target.id === rawCorrectTargetId);
+
+  if (!normalized.imageUrl) {
+    return createValidationResult(false, `${questionPrefix}还没有上传场景图，不能保存。`);
+  }
+
+  if (!hasTargets) {
+    return createValidationResult(false, `${questionPrefix}还没有设置目标区域，不能保存。`);
+  }
+
+  if (!hasCorrectTarget) {
+    return createValidationResult(false, `${questionPrefix}还没有设置正确答案，不能保存。`);
+  }
+
+  return createValidationResult(true);
+}
+
 module.exports = {
   DEFAULT_DRAGGABLE_OBJECT,
   INSTRUCTION_MODE_DRAG_PLACE,
@@ -116,5 +147,6 @@ module.exports = {
   normalizeDraggableObject,
   normalizeInstructionMode,
   normalizeInstructionQuestion,
+  validateInstructionQuestion,
   findTargetByPoint
 };

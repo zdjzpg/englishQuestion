@@ -18,7 +18,6 @@
         </div>
       </form>
 
-      <div class="info-badge" style="margin-top: 18px;">默认管理员：admin / 123456</div>
       <div v-if="state.apiError" class="form-error" style="margin-top: 12px;">{{ state.apiError }}</div>
 
       <div class="footer-actions" style="margin-top: 20px; justify-content: flex-end;">

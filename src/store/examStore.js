@@ -38,10 +38,12 @@ import shareCodeUtils from '../shared/shareCode';
 import audioFeedbackUtils from '../shared/audioFeedback';
 import paperEditPolicy from '../shared/paperEditPolicy';
 import questionAbilitiesUtils from '../shared/questionAbilities';
+import questionDifficultyUtils from '../shared/questionDifficulty';
 import questionTypeSupport from '../shared/questionTypeSupport';
 import reportAbilitiesUtils from '../shared/reportAbilities';
 import reportCommentsUtils from '../shared/reportComments';
 import studentExperienceUtils from '../shared/studentExperience';
+import followInstructionUtils from '../shared/followInstruction';
 
 const { getMissingStudentFields } = studentValidation;
 const { getPaperScoreSummary } = paperValidation;
@@ -49,6 +51,7 @@ const { normalizeShareCode } = shareCodeUtils;
 const { getReadAloudBuddyState, getListeningBuddyState } = audioFeedbackUtils;
 const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
 const { REPORT_ABILITIES, getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilitiesUtils;
+const { normalizeQuestionDifficulty } = questionDifficultyUtils;
 const { evaluateNewQuestionAnswer } = questionTypeSupport;
 const { buildWeightedAbilityMap, toAbilityItems } = reportAbilitiesUtils;
 const {
@@ -57,7 +60,8 @@ const {
   resolveReportComments,
   validateReportCommentConfig
 } = reportCommentsUtils;
-const { chooseSpeechVoice, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
+const { createSpeechPlaybackPlan, loadSpeechVoices, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
+const { validateInstructionQuestion } = followInstructionUtils;
 
 function createEmptyEditingPaper() {
   const config = defaultConfig();
@@ -253,6 +257,16 @@ export function useExamStore() {
   const editingScoreSummary = computed(() => getPaperScoreSummary(state.editingPaper.questions));
   const editingCommentValidation = computed(() => validateReportCommentConfig(state.editingPaper.commentConfig || {}));
   const editingRewardValidation = computed(() => validateRewardConfig(state.editingPaper.rewardConfig || {}));
+  const editingInstructionValidation = computed(() => {
+    const questions = Array.isArray(state.editingPaper.questions) ? state.editingPaper.questions : [];
+    for (let index = 0; index < questions.length; index += 1) {
+      const result = validateInstructionQuestion(questions[index], index);
+      if (!result.isValid) {
+        return result;
+      }
+    }
+    return { isValid: true, message: '' };
+  });
   const totalScore = computed(() => getTotalScore((state.config?.questions) || []));
   const currentQuestion = computed(() => getCurrentQuestion());
   const currentAnswer = computed(() => {
@@ -354,6 +368,7 @@ export function useExamStore() {
     editingScoreSummary,
     editingCommentValidation,
     editingRewardValidation,
+    editingInstructionValidation,
     totalScore,
     currentQuestion,
     currentAnswer,
@@ -502,7 +517,8 @@ export function useExamStore() {
           commentConfig: normalizeReportCommentConfig(paper.commentConfig || {}),
           questions: clone(paper.questions).map((question) => ({
             ...question,
-            abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type))
+            abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type)),
+            difficulty: normalizeQuestionDifficulty(question.difficulty)
           }))
         };
         syncLegacyEditingConfig();
@@ -523,7 +539,8 @@ export function useExamStore() {
       try {
         state.editingPaper.questions = state.editingPaper.questions.map((question) => ({
           ...question,
-          abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type))
+          abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type)),
+          difficulty: normalizeQuestionDifficulty(question.difficulty)
         }));
         if (state.editingPaperId) {
           const saved = await apiUpdatePaper(state.editingPaperId, getSavePayload(state.editingPaper));
@@ -630,6 +647,7 @@ export function useExamStore() {
     beginPaperSession() {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
+        void loadSpeechVoices(window.speechSynthesis);
       }
       state.sessionStarted = true;
       state.currentIndex = 0;
@@ -704,7 +722,7 @@ export function useExamStore() {
         state.currentSubmissionId = submission.id || '';
         state.finishAnimationVisible = state.currentPaper?.rewardConfig?.finishAnimationEnabled === true;
         state.rewardWheelVisible = !state.finishAnimationVisible && state.currentPaper?.rewardConfig?.enabled === true;
-        state.rewardResult = submission.reward || null;
+        state.rewardResult = null;
         setError(null);
       } catch (error) {
         setError(error);
@@ -889,15 +907,11 @@ export function useExamStore() {
         text,
         kind: questionId ? payload?.kind || 'listening' : 'listening'
       };
-      const utter = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-      const selectedVoice = chooseSpeechVoice(voices);
-      utter.rate = 0.82;
-      utter.pitch = 1.05;
-      if (selectedVoice) {
-        utter.voice = selectedVoice;
-        utter.lang = selectedVoice.lang || 'en-US';
-      }
+      const playbackPlan = createSpeechPlaybackPlan(voices);
+      let attemptId = 0;
+      let started = false;
+      let fallbackKickoffTimer = null;
       const safeTextLength = Math.max(1, String(text || '').length);
       const fallbackDuration = Math.max(2200, Math.min(9000, safeTextLength * 240 + 1800));
       playbackFallbackTimer = window.setTimeout(() => {
@@ -905,17 +919,61 @@ export function useExamStore() {
           stopSpeakingVisuals();
         }
       }, fallbackDuration);
-      utter.onend = () => {
-        if (speechToken === activeSpeechToken) {
-          stopSpeakingVisuals();
+
+      const speakWithSettings = (settings, isFallback = false) => {
+        attemptId += 1;
+        const currentAttempt = attemptId;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 0.82;
+        utter.pitch = 1.05;
+        if (settings.lang) {
+          utter.lang = settings.lang;
         }
-      };
-      utter.onerror = () => {
-        if (speechToken === activeSpeechToken) {
-          stopSpeakingVisuals();
+        if (settings.voice) {
+          utter.voice = settings.voice;
         }
+        utter.onstart = () => {
+          if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
+            return;
+          }
+          started = true;
+          if (fallbackKickoffTimer) {
+            window.clearTimeout(fallbackKickoffTimer);
+            fallbackKickoffTimer = null;
+          }
+        };
+        utter.onend = () => {
+          if (speechToken === activeSpeechToken && currentAttempt === attemptId) {
+            stopSpeakingVisuals();
+          }
+        };
+        utter.onerror = () => {
+          if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
+            return;
+          }
+          if (!isFallback && playbackPlan.fallback) {
+            window.speechSynthesis.cancel();
+            speakWithSettings(playbackPlan.fallback, true);
+            return;
+          }
+          stopSpeakingVisuals();
+        };
+        if (!isFallback && playbackPlan.fallback) {
+          fallbackKickoffTimer = window.setTimeout(() => {
+            if (speechToken !== activeSpeechToken || currentAttempt !== attemptId || started) {
+              return;
+            }
+            window.speechSynthesis.cancel();
+            speakWithSettings(playbackPlan.fallback, true);
+          }, 900);
+        }
+        if (typeof window.speechSynthesis.resume === 'function') {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utter);
       };
-      window.speechSynthesis.speak(utter);
+
+      speakWithSettings(playbackPlan.primary);
     },
     downloadCurrentReport() {
       if (!state.report) {

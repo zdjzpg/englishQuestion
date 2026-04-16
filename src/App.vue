@@ -82,7 +82,15 @@ const { buildTeacherNavItems, getTeacherPageMeta, isTeacherRoute } = adminLayout
 
 const route = useRoute();
 const router = useRouter();
-const { state, logout, editingScoreSummary, editingCommentValidation, editingRewardValidation, saveEditingPaper } = useExamStore();
+const {
+  state,
+  logout,
+  editingScoreSummary,
+  editingCommentValidation,
+  editingRewardValidation,
+  editingInstructionValidation,
+  saveEditingPaper
+} = useExamStore();
 
 const showTeacherShell = computed(() => isTeacherRoute(route));
 const pageMeta = computed(() => getTeacherPageMeta(String(route.name || '')));
@@ -117,6 +125,10 @@ async function savePaper() {
   }
   if (!editingRewardValidation.value.isValid) {
     message.warning(editingRewardValidation.value.message || '转盘奖品概率配置不正确。');
+    return;
+  }
+  if (!editingInstructionValidation.value.isValid) {
+    message.warning(editingInstructionValidation.value.message || '听音做指令题还有未完成的区域配置。');
     return;
   }
   try {

@@ -522,6 +522,20 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   margin-bottom: 10px;
 }
 
+.exam-header-badges {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.question-difficulty-tag {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2f7cf6;
+  background: #eef5ff;
+  border: 1px solid #cfe0ff;
+}
+
 .exam-paper-title {
   margin: 12px 0 8px;
   font-size: 28px;
@@ -2110,7 +2124,7 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 }
 
 .reward-card {
-  width: min(640px, 100%);
+  width: min(760px, 100%);
 }
 
 .opening-card,
@@ -2310,68 +2324,286 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   min-width: 144px;
 }
 
+.reward-machine-card {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.24));
+  border-radius: 40px;
+  box-shadow: 0 26px 56px rgba(38, 82, 146, 0.2);
+}
+
+.reward-machine-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 34px;
+  padding: 22px 24px 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 243, 180, 0.82), transparent 22%),
+    radial-gradient(circle at top right, rgba(132, 222, 255, 0.4), transparent 20%),
+    linear-gradient(180deg, #c6efff 0%, #90d8ff 34%, #ffd766 100%);
+  border: 8px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.96),
+    0 22px 44px rgba(45, 98, 167, 0.22);
+}
+
+.reward-machine-shell::before {
+  content: "";
+  position: absolute;
+  inset: 14px 16px auto;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.18));
+  opacity: 0.9;
+}
+
+.reward-machine-header {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.reward-machine-marquee {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #2f73c4;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  box-shadow: 0 8px 18px rgba(63, 121, 193, 0.12);
+}
+
+.reward-machine-header h2 {
+  margin: 12px 0 6px !important;
+  font-family: var(--font-title);
+  font-size: clamp(36px, 5vw, 56px);
+  color: #2d61aa;
+  text-shadow: 0 4px 0 rgba(255, 255, 255, 0.94), 0 16px 24px rgba(100, 167, 237, 0.18);
+}
+
+.reward-machine-header p {
+  margin: 0 auto;
+  max-width: 440px;
+  color: #4f74a6;
+  font-size: 16px;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.reward-machine-stage {
+  position: relative;
+  margin-top: 16px;
+}
+
+.reward-machine-lights {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: -14px;
+  position: relative;
+  z-index: 2;
+}
+
+.reward-machine-lights span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fffefc, #ffd774 68%, #ff9d59);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.58), 0 0 18px rgba(255, 212, 93, 0.72);
+}
+
+.reward-machine-lights span:nth-child(3n) {
+  background: radial-gradient(circle at 30% 30%, #ffffff, #84e1ff 68%, #5ab6ff);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.58), 0 0 18px rgba(90, 182, 255, 0.64);
+}
+
+.reward-machine-lights span:nth-child(4n) {
+  background: radial-gradient(circle at 30% 30%, #ffffff, #ffa8c8 68%, #ff7ca8);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.58), 0 0 18px rgba(255, 124, 168, 0.62);
+}
+
+.reward-machine-window {
+  position: relative;
+  margin: 0 auto;
+  padding: 28px 18px 18px;
+  width: min(400px, 100%);
+  border-radius: 38px 38px 30px 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(228, 246, 255, 0.68));
+  border: 8px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -14px 28px rgba(124, 189, 239, 0.12),
+    0 20px 36px rgba(55, 101, 169, 0.18);
+  backdrop-filter: blur(6px);
+}
+
+.reward-machine-window-gloss {
+  position: absolute;
+  inset: 18px auto auto 18px;
+  width: 32%;
+  height: 36%;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.12));
+  filter: blur(1px);
+  pointer-events: none;
+}
+
 .reward-wheel-wrap {
-  width: 300px;
-  height: 300px;
-  margin: 24px auto;
+  width: min(292px, 100%);
+  aspect-ratio: 1;
+  margin: 0 auto;
   position: relative;
 }
 
 .reward-wheel-pointer {
   position: absolute;
-  top: -8px;
+  top: -18px;
   left: 50%;
   width: 0;
   height: 0;
-  border-left: 18px solid transparent;
-  border-right: 18px solid transparent;
-  border-top: 34px solid #ff9c5b;
+  border-left: 24px solid transparent;
+  border-right: 24px solid transparent;
+  border-top: 46px solid #ff965f;
   transform: translateX(-50%);
-  z-index: 2;
+  filter: drop-shadow(0 8px 10px rgba(255, 126, 86, 0.34));
+  z-index: 3;
+}
+
+.reward-wheel-pointer-cap {
+  position: absolute;
+  top: -44px;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #ffd669 68%, #ffba57);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.66);
 }
 
 .reward-wheel {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 10px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 22px 40px rgba(50, 101, 184, 0.18);
+  border: 14px solid rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 24px 38px rgba(50, 101, 184, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.95);
   position: relative;
 }
 
-.reward-wheel::after {
+.reward-wheel::before {
   content: "";
   position: absolute;
-  inset: 50%;
-  width: 88px;
-  height: 88px;
+  inset: -10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.96);
-  transform: translate(-50%, -50%);
-  box-shadow: 0 10px 18px rgba(65, 114, 191, 0.18);
+  border: 8px dashed rgba(255, 245, 182, 0.88);
+  box-shadow: 0 0 18px rgba(255, 216, 103, 0.42);
 }
 
 .reward-wheel-label {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 96px;
-  margin-left: -48px;
+  width: 92px;
+  margin-left: -46px;
   text-align: center;
   transform-origin: center 0;
-  color: #244f8f;
-  font-weight: 800;
-  font-size: 12px;
+  color: #214f90;
+  font-weight: 900;
+  font-size: 13px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.reward-wheel-label-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 18px rgba(56, 109, 196, 0.18);
+  display: grid;
+  place-items: center;
 }
 
 .reward-wheel-image {
   width: 34px;
   height: 34px;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 12px;
   display: block;
-  margin: 0 auto 6px;
   background: rgba(255, 255, 255, 0.9);
+}
+
+.reward-wheel-center {
+  position: absolute;
+  inset: 50%;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(252, 243, 205, 0.96));
+  box-shadow: 0 14px 24px rgba(65, 114, 191, 0.18);
+  display: grid;
+  place-items: center;
+}
+
+.reward-wheel-center-core {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffae68 0%, #ff8b57 100%);
+  color: #fff;
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.34), 0 12px 20px rgba(255, 141, 87, 0.34);
+}
+
+.reward-machine-console {
+  margin: 16px auto 0;
+  width: min(480px, 100%);
+  padding: 16px 18px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 251, 234, 0.96), rgba(255, 232, 164, 0.96));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.8),
+    0 18px 30px rgba(255, 189, 87, 0.24);
+  display: grid;
+  gap: 16px;
+}
+
+.reward-machine-ticket {
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #5375a3;
+  text-align: center;
+  box-shadow: inset 0 0 0 2px rgba(255, 226, 149, 0.5);
+}
+
+.reward-machine-ticket-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #ff9b5d;
+  font-weight: 900;
+}
+
+.reward-machine-ticket strong {
+  color: #2f63a8;
+  font-size: 16px;
 }
 
 .reward-wheel-actions {
@@ -2379,23 +2611,68 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   justify-content: center;
 }
 
-.reward-result-card {
-  margin: 22px auto 0;
+.reward-machine-button.student-overlay-cta {
+  margin-top: 0;
+  min-width: 188px;
+  min-height: 52px;
+  border-radius: 999px;
+  font-size: 20px;
+  box-shadow: 0 18px 26px rgba(255, 154, 86, 0.32);
+}
+
+.reward-result-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(16, 45, 88, 0.18);
+  backdrop-filter: blur(4px);
+}
+
+.reward-prize-chute {
+  margin: 14px auto 0;
   width: min(320px, 100%);
-  padding: 18px 20px;
+  padding: 16px 18px 18px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top center, rgba(255, 249, 219, 0.98), rgba(255, 240, 193, 0.94) 58%, rgba(255, 225, 155, 0.95));
+  border: 2px solid rgba(255, 216, 103, 0.88);
+  box-shadow: 0 20px 36px rgba(255, 177, 93, 0.24);
+  position: relative;
+  overflow: hidden;
+}
+
+.reward-result-popup {
+  margin: 0;
+  width: min(360px, calc(100vw - 64px));
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.reward-prize-chute::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,244,216,.96));
-  border: 1px solid rgba(255, 224, 154, 0.9);
-  box-shadow: 0 18px 34px rgba(255, 177, 93, 0.2);
+  border: 2px dashed rgba(255, 232, 163, 0.9);
+  pointer-events: none;
 }
 
 .reward-result-burst {
+  position: relative;
+  z-index: 1;
   color: #ffb95b;
   font-size: 24px;
   letter-spacing: 0.18em;
 }
 
 .reward-result-label {
+  position: relative;
+  z-index: 1;
   margin-top: 6px;
   color: #7d8ea8;
   font-size: 13px;
@@ -2403,6 +2680,8 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 }
 
 .reward-result-name {
+  position: relative;
+  z-index: 1;
   margin-top: 8px;
   color: #244f8f;
   font-size: 28px;
@@ -2410,20 +2689,71 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
 }
 
 .reward-result-image {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 88px;
   height: 88px;
-  margin: 14px auto 0;
+  margin: 10px auto 0;
   object-fit: cover;
-  border-radius: 24px;
-  box-shadow: 0 10px 18px rgba(56, 109, 196, 0.14);
+  border-radius: 28px;
+  box-shadow: 0 14px 22px rgba(56, 109, 196, 0.14);
   background: rgba(255,255,255,.9);
 }
 
 .reward-result-description {
-  margin-top: 10px !important;
+  position: relative;
+  z-index: 1;
+  margin-top: 8px !important;
   color: #5f7ca8;
   font-size: 13px;
+}
+
+.reward-result-button.student-overlay-cta {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  min-width: 188px;
+}
+
+@media (max-height: 820px) {
+  .reward-machine-card {
+    padding: 12px;
+  }
+
+  .reward-machine-shell {
+    padding: 18px 18px 20px;
+  }
+
+  .reward-machine-header h2 {
+    margin: 10px 0 4px !important;
+    font-size: clamp(30px, 4.2vw, 44px);
+  }
+
+  .reward-machine-header p {
+    font-size: 14px;
+  }
+
+  .reward-wheel-wrap {
+    width: min(252px, 100%);
+  }
+
+  .reward-machine-console {
+    gap: 12px;
+  }
+
+  .reward-machine-ticket {
+    padding: 12px 14px;
+  }
+
+  .reward-prize-chute {
+    width: min(292px, 100%);
+    padding: 14px 16px 16px;
+  }
+
+  .reward-result-modal {
+    padding: 18px;
+  }
 }
 
 @keyframes pulse-burst {
@@ -2559,9 +2889,16 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   gap: 18px;
 }
 
+.craft-report-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
 .craft-progress-card,
 .craft-radar-card,
-.craft-note-card {
+.craft-note-card,
+.craft-summary-card {
   border-color: rgba(195, 215, 230, 0.7);
 }
 
@@ -2570,6 +2907,9 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 }
 
 .craft-radar-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: linear-gradient(180deg, rgba(255, 253, 244, 0.98), rgba(245, 252, 250, 0.98));
 }
 
@@ -2577,6 +2917,10 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   background:
     linear-gradient(180deg, #fff7cf 0%, #fffdf3 100%);
   border: 2px dashed rgba(222, 183, 91, 0.45);
+}
+
+.craft-summary-card {
+  background: linear-gradient(180deg, rgba(248, 252, 255, 0.98), rgba(239, 248, 255, 0.98));
 }
 
 .craft-panel-intro {
@@ -2636,6 +2980,33 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   font-size: 15px;
 }
 
+.craft-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.craft-summary-pill {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(191, 220, 242, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.craft-summary-label {
+  color: #6d82a0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.craft-summary-value {
+  margin-top: 6px;
+  color: #315e9f;
+  font-size: 24px;
+  font-weight: 900;
+}
+
 .student-craft-report--desktop .hero {
   padding: 18px 22px 16px;
 }
@@ -2670,6 +3041,11 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .student-craft-report--desktop .craft-report-panels {
   grid-template-columns: 1.08fr 0.92fr;
+  gap: 14px;
+}
+
+.student-craft-report--desktop .craft-report-footer {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -2708,6 +3084,18 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   min-height: 0;
   font-size: 14px;
   line-height: 1.6;
+}
+
+.student-craft-report--desktop .craft-summary-grid {
+  gap: 10px;
+}
+
+.student-craft-report--desktop .craft-summary-pill {
+  padding: 12px 14px;
+}
+
+.student-craft-report--desktop .craft-summary-value {
+  font-size: 22px;
 }
 
 .student-craft-report--ipad .hero {
@@ -2770,9 +3158,18 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   gap: 12px;
 }
 
+.student-craft-report--ipad .craft-report-footer {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .student-craft-report--ipad .card {
   padding: 16px;
   border-radius: 24px;
+}
+
+.student-craft-report--ipad .card-title {
+  margin-bottom: 10px;
 }
 
 .student-craft-report--ipad .craft-panel-intro {
@@ -2799,23 +3196,59 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   font-size: 12px;
 }
 
+.student-craft-report--ipad .craft-radar-card {
+  padding-bottom: 12px;
+}
+
+.student-craft-report--ipad .ability-radar-wrap {
+  gap: 10px;
+}
+
 .student-craft-report--ipad .report-radar-card .radar {
-  width: min(180px, 100%);
+  width: clamp(132px, 16vh, 180px);
 }
 
 .student-craft-report--ipad .report-radar-card .ability-radar-kpis {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .student-craft-report--ipad .report-radar-card .ability-radar-kpis .kpi {
-  padding: 10px 12px;
+  padding: 8px 10px;
+  border-radius: 18px;
+}
+
+.student-craft-report--ipad .report-radar-card .ability-radar-kpis .kpi-value {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.student-craft-report--ipad .craft-note-card {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .student-craft-report--ipad .craft-note-text {
   min-height: 0;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.student-craft-report--ipad .craft-summary-grid {
+  gap: 8px;
+}
+
+.student-craft-report--ipad .craft-summary-pill {
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.student-craft-report--ipad .craft-summary-label {
+  font-size: 12px;
+}
+
+.student-craft-report--ipad .craft-summary-value {
+  font-size: 20px;
 }
 
 .report-radar-card .radar {
@@ -2867,6 +3300,8 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .ability-radar-wrap {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
   gap: 18px;
 }
 
@@ -3294,6 +3729,12 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   max-width: 1080px;
 }
 
+.admin-create-form .ant-input,
+.admin-create-form .ant-input-affix-wrapper,
+.admin-create-form .ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
+  height: 46px;
+}
+
 .admin-page .ant-input,
 .admin-page .ant-input-affix-wrapper,
 .admin-page .ant-input-number,
@@ -3650,6 +4091,17 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .admin-papers-actions .ant-space-item {
   max-width: 100%;
+}
+
+.admin-ant-table .ant-table-cell-fix-right,
+.admin-ant-table .ant-table-cell-fix-right-first,
+.admin-ant-table .ant-table-cell-fix-right-last {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.admin-ant-table .ant-table-cell-fix-right-first::after,
+.admin-ant-table .ant-table-cell-fix-right-last::after {
+  box-shadow: -14px 0 24px rgba(59, 103, 167, 0.08);
 }
 
 .admin-answer-actions {
@@ -4318,12 +4770,20 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 .student-instruction-stage {
   position: relative;
   margin-top: 22px;
+  width: 100%;
+  height: clamp(320px, 56vh, 680px);
   border-radius: 28px;
   overflow: hidden;
   border: 1px solid rgba(211, 235, 255, 0.96);
   background: linear-gradient(180deg, rgba(255, 251, 238, 0.96), rgba(241, 249, 255, 0.96));
   display: grid;
   place-items: center;
+}
+
+.student-instruction-scene {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .student-instruction-empty-state {
@@ -4398,6 +4858,10 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 }
 
 @media (max-width: 960px) {
+  .student-instruction-stage {
+    height: clamp(280px, 50vh, 520px);
+  }
+
   .instruction-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -4807,4 +5271,3 @@ body.exam-single-screen .paper-view-shell-exam .question-helper {
     gap: 8px;
   }
 }
-

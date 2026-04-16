@@ -18,6 +18,7 @@ test('listen-choose-letter uses playful nest targets and scattered loose letters
   assert.match(source, /window\.addEventListener\('pointermove'/);
   assert.match(source, /window\.addEventListener\('pointerup'/);
   assert.match(source, /drag-ghost/);
+  assert.match(source, /<Teleport to="body">/);
   assert.match(source, /snapLetterToHome/);
   assert.match(source, /resetLetterPosition/);
   assert.match(source, /celebrateHome/);

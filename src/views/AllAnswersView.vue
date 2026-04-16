@@ -144,9 +144,11 @@ import { toPng } from 'html-to-image';
 import { useRoute, useRouter } from 'vue-router';
 import SubmissionReportCapture from '../components/shared/SubmissionReportCapture.vue';
 import reportImageExportUtils from '../shared/reportImageExport';
+import submissionReportSnapshotUtils from '../shared/submissionReportSnapshot';
 import { useExamStore } from '../store/examStore';
 
 const { buildReportImageOptions } = reportImageExportUtils;
+const { buildSubmissionReportSnapshot } = submissionReportSnapshotUtils;
 const router = useRouter();
 const route = useRoute();
 const { configuredPapers, fetchPapers, loadSubmissionsByPaper, state } = useExamStore();
@@ -244,12 +246,13 @@ async function downloadSubmissionReportImage(submission) {
     mountHost.style.zIndex = '-1';
     document.body.appendChild(mountHost);
 
-    app = createApp(SubmissionReportCapture, {
-      student: submission.student || {},
-      report: submission.report || {},
-      questionCount: Array.isArray(submission.records) ? submission.records.length : 0,
-      reward: submission.reward || null
+    const selectedPaper = configuredPapers.value.find((item) => item.id === submission.paperId) || null;
+    const snapshot = buildSubmissionReportSnapshot({
+      submission,
+      paper: selectedPaper || {}
     });
+
+    app = createApp(SubmissionReportCapture, snapshot);
     app.mount(mountHost);
 
     await nextTick();

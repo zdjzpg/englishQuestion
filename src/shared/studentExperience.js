@@ -12,6 +12,69 @@ function chooseSpeechVoice(voices = []) {
   return defaultVoice || voices[0];
 }
 
+function resolveSpeechPlaybackSettings(voices = []) {
+  const voice = chooseSpeechVoice(voices);
+  return {
+    voice,
+    lang: String(voice?.lang || '').trim()
+  };
+}
+
+function loadSpeechVoices(speechSynthesis, timeoutMs = 1200) {
+  if (!speechSynthesis?.getVoices) {
+    return Promise.resolve([]);
+  }
+
+  const existing = speechSynthesis.getVoices();
+  if (Array.isArray(existing) && existing.length) {
+    return Promise.resolve(existing);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = null;
+
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (speechSynthesis.removeEventListener) {
+        speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+      }
+      resolve(speechSynthesis.getVoices() || []);
+    };
+
+    const handleVoicesChanged = () => {
+      const voices = speechSynthesis.getVoices();
+      if (Array.isArray(voices) && voices.length) {
+        finish();
+      }
+    };
+
+    if (speechSynthesis.addEventListener) {
+      speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    }
+
+    timeoutId = setTimeout(finish, timeoutMs);
+  });
+}
+
+function createSpeechPlaybackPlan(voices = []) {
+  const primary = resolveSpeechPlaybackSettings(voices);
+  const fallback = primary.voice && !primary.voice.default
+    ? { voice: null, lang: '' }
+    : null;
+
+  return {
+    primary,
+    fallback
+  };
+}
+
 function normalizeRewardConfig(config = {}) {
   const items = (Array.isArray(config.items) ? config.items : [])
     .map((item, index) => ({
@@ -116,6 +179,9 @@ function pickRewardItem(config = {}, randomValue = Math.random()) {
 
 module.exports = {
   chooseSpeechVoice,
+  createSpeechPlaybackPlan,
+  loadSpeechVoices,
+  resolveSpeechPlaybackSettings,
   createDefaultRewardConfig,
   normalizeRewardConfig,
   pickRewardItem,

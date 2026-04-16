@@ -3,6 +3,7 @@ import followInstructionUtils from '../shared/followInstruction';
 import listenChooseImageUtils from '../shared/listenChooseImage';
 import lookChooseWordUtils from '../shared/lookChooseWord';
 import questionAbilitiesUtils from '../shared/questionAbilities';
+import questionDifficultyUtils from '../shared/questionDifficulty';
 import questionTypeSupport from '../shared/questionTypeSupport';
 import reportCommentsUtils from '../shared/reportComments';
 import studentExperienceUtils from '../shared/studentExperience';
@@ -24,6 +25,7 @@ const {
   getDefaultAbilitiesForType,
   normalizeQuestionAbilities
 } = questionAbilitiesUtils;
+const { normalizeQuestionDifficulty } = questionDifficultyUtils;
 const { createDefaultReportCommentConfig } = reportCommentsUtils;
 const {
   getNewQuestionTypeDefaults,
@@ -115,7 +117,8 @@ export function defaultConfig() {
 function withAbilities(question, normalized) {
   return {
     ...normalized,
-    abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type))
+    abilities: normalizeQuestionAbilities(question.abilities, getDefaultAbilitiesForType(question.type)),
+    difficulty: normalizeQuestionDifficulty(question.difficulty)
   };
 }
 

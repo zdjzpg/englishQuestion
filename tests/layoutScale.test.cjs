@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { calculateContainScale } = require('../src/shared/layoutScale');
+const { calculateContainScale, calculateContainBox } = require('../src/shared/layoutScale');
 
 test('returns 1 when content already fits in the viewport', () => {
   const scale = calculateContainScale({
@@ -45,4 +45,34 @@ test('returns 1 when dimensions are invalid', () => {
   });
 
   assert.equal(scale, 1);
+});
+
+test('calculateContainBox keeps a portrait scene fully visible in a wider viewport', () => {
+  const box = calculateContainBox({
+    viewportWidth: 2000,
+    viewportHeight: 1000,
+    contentWidth: 1000,
+    contentHeight: 1500
+  });
+
+  assert.deepEqual(box, {
+    width: 666.667,
+    height: 1000,
+    scale: 0.667
+  });
+});
+
+test('calculateContainBox keeps a wide scene fully visible in a taller viewport', () => {
+  const box = calculateContainBox({
+    viewportWidth: 900,
+    viewportHeight: 1200,
+    contentWidth: 1600,
+    contentHeight: 900
+  });
+
+  assert.deepEqual(box, {
+    width: 900,
+    height: 506.25,
+    scale: 0.563
+  });
 });

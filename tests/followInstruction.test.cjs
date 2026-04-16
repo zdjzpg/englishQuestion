@@ -7,6 +7,7 @@ const {
   createRectTarget,
   findTargetByPoint,
   normalizeInstructionQuestion,
+  validateInstructionQuestion,
   SAMPLE_INSTRUCTION_IMAGE
 } = require('../src/shared/followInstruction');
 
@@ -125,6 +126,47 @@ test('normalizeInstructionQuestion preserves explicit empty labels for hidden ta
   assert.equal(question.targets[0].label, '');
 });
 
+test('validateInstructionQuestion rejects drag mode when the scene image is missing', () => {
+  const result = validateInstructionQuestion({
+    id: 'q_drag_missing_scene',
+    type: 'listen_follow_instruction',
+    mode: 'drag_place',
+    imageUrl: '',
+    correctTargetId: '',
+    targets: []
+  }, 1);
+
+  assert.equal(result.isValid, false);
+  assert.match(result.message, /第 2 题/);
+  assert.match(result.message, /场景图/);
+});
+
+test('validateInstructionQuestion rejects drag mode when no target region or correct answer is configured', () => {
+  const noTargetResult = validateInstructionQuestion({
+    id: 'q_drag_no_targets',
+    type: 'listen_follow_instruction',
+    mode: 'drag_place',
+    imageUrl: 'scene.png',
+    correctTargetId: '',
+    targets: []
+  }, 0);
+  assert.equal(noTargetResult.isValid, false);
+  assert.match(noTargetResult.message, /目标区域/);
+
+  const noCorrectAnswerResult = validateInstructionQuestion({
+    id: 'q_drag_no_answer',
+    type: 'listen_follow_instruction',
+    mode: 'drag_place',
+    imageUrl: 'scene.png',
+    correctTargetId: '',
+    targets: [
+      { id: 'target_1', label: 'table', x: 20, y: 30, width: 10, height: 12 }
+    ]
+  }, 0);
+  assert.equal(noCorrectAnswerResult.isValid, false);
+  assert.match(noCorrectAnswerResult.message, /正确答案/);
+});
+
 test('listen follow instruction defaults no longer prefill demo image in new paper', () => {
   const contentSource = read('src/utils/content.js');
   assert.match(contentSource, /if \(type === 'listen_follow_instruction'\)/);
@@ -154,9 +196,12 @@ test('follow instruction editor and student view use the reorganized top config 
   assert.match(questionSource, /student-instruction-empty-state/);
   assert.match(questionSource, /student-drag-object/);
   assert.match(questionSource, /handleImageLoad/);
-  assert.match(questionSource, /stageStyle/);
+  assert.match(questionSource, /calculateContainBox/);
+  assert.match(questionSource, /stageViewportRef/);
+  assert.match(questionSource, /sceneFrameStyle/);
+  assert.match(questionSource, /student-instruction-scene/);
   assert.match(questionSource, /@load="handleImageLoad"/);
-  assert.match(questionSource, /:style="stageStyle"/);
+  assert.match(questionSource, /:style="sceneFrameStyle"/);
   assert.match(questionSource, /<span v-if="target\.label">/);
   assert.doesNotMatch(questionSource, /target\.label \|\| target\.id/);
   assert.doesNotMatch(questionSource, /class="muted tiny"/);
@@ -167,5 +212,7 @@ test('follow instruction editor and student view use the reorganized top config 
   assert.match(stylesSource, /\.instruction-config-fields\s*\{/);
   assert.match(stylesSource, /\.student-instruction-empty-state\s*\{/);
   assert.match(stylesSource, /\.student-drag-object\s*\{/);
+  assert.match(stylesSource, /\.student-instruction-stage\s*\{[\s\S]*height:\s*clamp\(/);
+  assert.match(stylesSource, /\.student-instruction-scene\s*\{[\s\S]*position:\s*relative;/);
   assert.match(stylesSource, /\.student-instruction-image\s*\{[\s\S]*height:\s*100%;[\s\S]*object-fit:\s*contain;/);
 });

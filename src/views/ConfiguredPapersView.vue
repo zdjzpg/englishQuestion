@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-page">
     <section class="admin-kpis">
       <article class="admin-kpi">
@@ -66,7 +66,10 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'examTitle'">
-            <router-link class="admin-row-link admin-router-link" :to="{ name: 'paper-new', query: { id: record.id } }">
+            <router-link
+              class="admin-row-link admin-router-link"
+              :to="{ name: 'paper-new', query: { id: record.id } }"
+            >
               {{ record.examTitle }}
             </router-link>
             <div class="admin-row-note">{{ paperSummary(record) }}</div>
@@ -101,8 +104,13 @@
               >
                 编辑卷子
               </a-button>
-              <a-button size="small" @click="copyPaperAndRefresh(record.id)">复制卷子</a-button>
-              <a-button type="primary" size="small" @click="openAnswers(record.id)">答题情况</a-button>
+              <a-button
+                type="primary"
+                size="small"
+                @click="openAnswers(record.id)"
+              >
+                答题情况
+              </a-button>
               <a-dropdown trigger="click">
                 <a-button size="small">
                   更多
@@ -110,10 +118,13 @@
                 </a-button>
                 <template #overlay>
                   <a-menu @click="({ key }) => handleMoreAction(key, record)">
+                    <a-menu-item key="copy">复制卷子</a-menu-item>
                     <a-menu-item key="code">复制分享码</a-menu-item>
                     <a-menu-item key="link">复制分享链接</a-menu-item>
                     <a-menu-item key="preview">预览学生页</a-menu-item>
-                    <a-menu-item key="delete" class="admin-danger-item">删除卷子</a-menu-item>
+                    <a-menu-item key="delete" class="admin-danger-item">
+                      删除卷子
+                    </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
@@ -122,7 +133,9 @@
         </template>
       </a-table>
 
-      <div v-else class="empty admin-empty">没有匹配的卷子，换个关键词或筛选条件再看。</div>
+      <div v-else class="empty admin-empty">
+        没有匹配的卷子，换个关键词或筛选条件再看。
+      </div>
     </section>
   </div>
 </template>
@@ -145,18 +158,21 @@ const {
   fetchPapers,
   removePaper,
   state,
-  buildShareLink
+  buildShareLink,
 } = useExamStore();
 const keyword = ref('');
 const selectedType = ref(undefined);
 
 const filteredPapers = computed(() => configuredPapers.value);
 const totalSubmissions = computed(() =>
-  configuredPapers.value.reduce((sum, paper) => sum + Number(paper.submissionCount || 0), 0)
+  configuredPapers.value.reduce((sum, paper) => sum + Number(paper.submissionCount || 0), 0),
 );
 const typeOptions = computed(() => [
   { label: '全部题型', value: '' },
-  ...Object.entries(TYPE_META).map(([value, meta]) => ({ value, label: meta.label }))
+  ...Object.entries(TYPE_META).map(([value, meta]) => ({
+    value,
+    label: meta.label,
+  })),
 ]);
 const columns = computed(() => {
   const base = [
@@ -166,16 +182,29 @@ const columns = computed(() => {
     { title: '题数 / 总分', key: 'scoreSummary', width: 120 },
     { title: '答题记录', key: 'submissionCount', width: 110 },
     { title: '最近更新', key: 'updatedAt', width: 170 },
-    { title: '操作', key: 'actions', width: 440, align: 'right', fixed: 'right' }
+    {
+      title: '操作',
+      key: 'actions',
+      width: 300,
+      align: 'right',
+      fixed: 'right',
+    },
   ];
 
   if (state.authUser?.role === 'ADMIN') {
-    base.splice(5, 0, { title: '归属员工', dataIndex: 'ownerUsername', key: 'ownerUsername', width: 140 });
+    base.splice(5, 0, {
+      title: '归属员工',
+      dataIndex: 'ownerUsername',
+      key: 'ownerUsername',
+      width: 140,
+    });
   }
 
   return base;
 });
-const tableScrollX = computed(() => columns.value.reduce((sum, column) => sum + Number(column.width || 0), 0));
+const tableScrollX = computed(() =>
+  columns.value.reduce((sum, column) => sum + Number(column.width || 0), 0),
+);
 
 onMounted(async () => {
   await refreshPapers();
@@ -216,7 +245,7 @@ function deletePaperAndRefresh(paperId) {
     async onOk() {
       await removePaper(paperId);
       message.success('卷子已删除');
-    }
+    },
   });
 }
 
@@ -243,7 +272,9 @@ async function copyShareLink(shareCode) {
 }
 
 function handleMoreAction(actionKey, paper) {
-  if (actionKey === 'code') {
+  if (actionKey === 'copy') {
+    copyPaperAndRefresh(paper.id);
+  } else if (actionKey === 'code') {
     copyShareCode(paper.shareCode);
   } else if (actionKey === 'link') {
     copyShareLink(paper.shareCode);
@@ -257,13 +288,13 @@ function handleMoreAction(actionKey, paper) {
 async function refreshPapers() {
   await fetchPapers({
     keyword: keyword.value.trim(),
-    questionType: selectedType.value || ''
+    questionType: selectedType.value || '',
   });
 }
 
 function customRow(record) {
   return {
-    onDblclick: () => editPaper(record.id)
+    onDblclick: () => editPaper(record.id),
   };
 }
 

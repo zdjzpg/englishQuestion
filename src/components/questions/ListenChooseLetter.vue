@@ -45,11 +45,13 @@
       >
         {{ item.letter }}
       </button>
+    </div>
 
+    <Teleport to="body">
       <div v-if="dragState.id" class="drag-ghost" :style="dragGhostStyle">
         {{ dragState.letter }}
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 

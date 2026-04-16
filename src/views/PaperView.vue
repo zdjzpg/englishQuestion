@@ -38,15 +38,15 @@
           </div>
         </div>
         <div class="chip-row">
-          <div class="chip">馃摑 {{ state.currentPaper.questions.length }} 閬撻</div>
-          <div class="chip">猸?鎬诲垎 {{ currentPaperTotal }}</div>
+          <div class="chip">📝 {{ state.currentPaper.questions.length }} 道题</div>
+          <div class="chip">⭐ 总分 {{ currentPaperTotal }}</div>
         </div>
       </div>
 
       <div class="main-grid intake-grid">
         <div class="card">
           <div class="card-title">
-            <h2>濉啓瀛︾敓淇℃伅</h2>
+            <h2>填写学生信息</h2>
           </div>
           <div class="field-grid two">
             <div class="field">
@@ -93,7 +93,10 @@
             <h2 class="exam-paper-title">{{ state.currentPaper.examTitle }}</h2>
             <div class="muted">{{ state.student.name || '未填写姓名' }} · {{ state.student.age || '-' }}岁 · {{ state.student.school || '-' }} · {{ state.student.grade || '-' }}</div>
           </div>
-          <div class="info-badge">当前题分值 {{ currentQuestion.score }}</div>
+          <div class="exam-header-badges">
+            <div class="tag question-difficulty-tag">{{ currentQuestionDifficultyLabel }}</div>
+            <div class="info-badge">当前题分值 {{ currentQuestion.score }}</div>
+          </div>
         </div>
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
@@ -177,12 +180,16 @@ import StudentFinishOverlay from '../components/shared/StudentFinishOverlay.vue'
 import StudentOpeningOverlay from '../components/shared/StudentOpeningOverlay.vue';
 import layoutScaleUtils from '../shared/layoutScale';
 import questionAbilitiesUtils from '../shared/questionAbilities';
+import questionDifficultyUtils from '../shared/questionDifficulty';
 import reportCommentsUtils from '../shared/reportComments';
+import reportLayoutModeUtils from '../shared/reportLayoutMode';
 import reportImageExportUtils from '../shared/reportImageExport';
 import { useExamStore } from '../store/examStore';
 const { REPORT_ABILITIES } = questionAbilitiesUtils;
+const { getQuestionDifficultyLabel } = questionDifficultyUtils;
 const { calculateContainScale } = layoutScaleUtils;
 const { formatReportCommentsInline } = reportCommentsUtils;
+const { resolveReportLayoutMode } = reportLayoutModeUtils;
 const { buildReportImageOptions } = reportImageExportUtils;
 const {
   state,
@@ -250,10 +257,11 @@ const questionFitViewportRef = ref(null);
 const questionFitContentRef = ref(null);
 const questionScale = ref(1);
 const viewportWidth = ref(typeof window === 'undefined' ? 1920 : window.innerWidth);
+const viewportHeight = ref(typeof window === 'undefined' ? 1080 : window.innerHeight);
+const currentQuestionDifficultyLabel = computed(() => getQuestionDifficultyLabel(currentQuestion.value?.difficulty));
 const reportCommentLine = computed(() => formatReportCommentsInline(state.report?.comments));
-const reportCommentDisplay = computed(() => reportCommentLine.value || '浠婂ぉ瀹屾垚寰楀緢璁ょ湡锛岀户缁妸浣犵殑鑻辫灏忔湰棰嗕竴鐐圭偣鏀堕泦璧锋潵鍚с€?);
-const reportLayoutMode = computed(() => (viewportWidth.value <= 1366 ? 'ipad' : 'desktop'));
-let finishTimer = null;
+const reportCommentDisplay = computed(() => reportCommentLine.value || '今天完成得很认真，继续把你的英语小本领一点点收集起来吧。');
+const reportLayoutMode = computed(() => resolveReportLayoutMode(viewportWidth.value, viewportHeight.value));
 let scaleFrameId = null;
 let scaleObserver = null;
 
@@ -351,19 +359,6 @@ function fieldError(field) {
   return missingStudentFields.value.includes(field);
 }
 
-watch(() => state.finishAnimationVisible, (value) => {
-  if (finishTimer) {
-    window.clearTimeout(finishTimer);
-    finishTimer = null;
-  }
-  if (value) {
-    finishTimer = window.setTimeout(() => {
-      completeFinishAnimation();
-      finishTimer = null;
-    }, 1800);
-  }
-});
-
 watch(isExamState, async (active) => {
   setExamBodyClass(active);
   if (!active) {
@@ -393,9 +388,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (finishTimer) {
-    window.clearTimeout(finishTimer);
-  }
   if (scaleFrameId) {
     window.cancelAnimationFrame(scaleFrameId);
     scaleFrameId = null;
@@ -408,6 +400,7 @@ onBeforeUnmount(() => {
 
 function handleViewportResize() {
   viewportWidth.value = window.innerWidth;
+  viewportHeight.value = window.innerHeight;
   scheduleQuestionScale();
 }
 </script>
