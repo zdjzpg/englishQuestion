@@ -188,6 +188,131 @@ npm start
 - 前端 Vue 开发服务
 - 后端 API 服务
 
+## 线上更新规则
+
+后续线上环境默认按下面 3 类更新方式处理。每次准备更新前，先问用户这次改动属于哪一类：
+
+- 只改前端
+- 只改后端
+- 改数据库
+
+如果实际是混合改动，必须明确拆分成：
+
+- 前端 + 后端
+- 后端 + 数据库
+- 前端 + 后端 + 数据库
+
+然后按对应组合给出更新步骤，不要直接给笼统答案。
+
+### 1. 只改前端时
+
+适用范围：
+
+- `src`
+- `public`
+- 样式
+- Vue 页面
+- 前端静态资源
+
+推荐更新方式：
+
+1. 在本地执行 `npm run build`
+2. 用 WinSCP 上传最新 `dist` 到服务器 `/home/admin/EnglishQuestion/dist`
+3. 一般不需要重启 `pm2`
+4. 通常也不需要重启 `nginx`
+5. 上传后直接刷新浏览器验证页面
+
+给用户的默认建议：
+
+- 小改动优先只传 `dist`
+- 不要在当前 2C2G 服务器上执行前端构建，避免机器卡死
+
+### 2. 只改后端时
+
+适用范围：
+
+- `server/index.js`
+- `server/*.js`
+- 被后端直接依赖的共享逻辑文件，例如 `src/shared/*`
+
+推荐更新方式：
+
+1. 用 WinSCP 上传修改后的后端代码到服务器 `/home/admin/EnglishQuestion`
+2. 如果没有依赖变化，执行：
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 restart english-question
+```
+
+3. 如果有依赖变化，还要先执行：
+
+```bash
+cd /home/admin/EnglishQuestion
+npm install
+pm2 restart english-question
+```
+
+4. 更新后默认验证：
+
+```bash
+pm2 status
+curl http://127.0.0.1:3001/api/health
+```
+
+### 3. 改数据库时
+
+适用范围：
+
+- 新增表
+- 改字段
+- 改索引
+- 改视图
+- 数据修复脚本
+
+推荐更新方式：
+
+1. 先备份数据库：
+
+```bash
+mysqldump -u kidsenglish -p kids_english > /home/admin/kids_english_backup.sql
+```
+
+2. 再执行数据库变更脚本
+3. 如果数据库变更依赖后端代码，同时更新后端代码
+4. 变更完成后重启后端：
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 restart english-question
+```
+
+5. 至少验证：
+
+- 接口是否正常
+- 关键页面是否还能读取和写入数据
+
+## 后续会话中的提问规则
+
+后续只要用户说“代码改完了，怎么更新”，默认先追问这次改动范围，优先用下面这个问法：
+
+> 这次改动是前端、后端、数据库，还是其中多个都有？
+
+然后按回答给更新方案：
+
+- 只前端：给本地 build + 上传 `dist` 的方案
+- 只后端：给上传代码 + `pm2 restart` 的方案
+- 只数据库：给备份 + 执行 SQL + 重启后端的方案
+- 混合改动：按“前端 / 后端 / 数据库”拆步骤，分顺序给方案
+
+## 线上更新总原则
+
+- 前端尽量本地构建，不在当前低配服务器上构建
+- 后端更新后优先用 `pm2 restart english-question`
+- 涉及 `package.json` 或 `package-lock.json` 变化时，要提醒执行 `npm install`
+- 涉及数据库结构变化时，先备份再变更
+- 给用户更新方案时，必须附上“更新后验证步骤”
+
 ## 当前项目状态总结
 一句话概括：
 

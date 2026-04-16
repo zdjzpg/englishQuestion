@@ -679,6 +679,7 @@ async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
               s.total_score,
               s.total_possible_score,
               s.percent_score,
+          s.report_json,
           s.submitted_at,
           s.reward_json
         FROM submissions s
@@ -715,6 +716,9 @@ async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
     );
 
     return submissionRows.map((row) => {
+      const reportData = typeof row.report_json === 'string' && row.report_json
+        ? JSON.parse(row.report_json)
+        : {};
       const records = answerRows
         .filter((answer) => answer.submission_id === row.id)
         .map((answer) => {
@@ -752,7 +756,11 @@ async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
         report: {
           total: Number(row.total_score),
           totalPossible: Number(row.total_possible_score),
-          percent: Number(row.percent_score)
+          percent: Number(row.percent_score),
+          abilityMap: reportData.abilityMap || {},
+          abilityItems: Array.isArray(reportData.abilityItems) ? reportData.abilityItems : [],
+          comments: reportData.comments || {},
+          details: Array.isArray(reportData.details) ? reportData.details : []
         },
         reward: typeof row.reward_json === 'string' && row.reward_json ? JSON.parse(row.reward_json) : null,
         records

@@ -1,5 +1,5 @@
 <template>
-  <div class="ability-radar-wrap">
+  <div class="ability-radar-wrap report-radar-card">
     <svg class="radar" viewBox="0 0 320 320" role="img" aria-label="能力雷达图">
       <g transform="translate(160 160)">
         <polygon
@@ -7,7 +7,7 @@
           :key="ring"
           :points="ringPoints(ring)"
           fill="none"
-          stroke="rgba(113, 176, 242, 0.24)"
+          stroke="rgba(143, 189, 222, 0.28)"
           stroke-width="1"
         />
         <line
@@ -17,13 +17,13 @@
           y1="0"
           :x2="point.x"
           :y2="point.y"
-          stroke="rgba(113, 176, 242, 0.24)"
+          stroke="rgba(143, 189, 222, 0.28)"
           stroke-width="1"
         />
         <polygon
           :points="dataPolygon"
-          fill="rgba(88, 184, 255, 0.22)"
-          stroke="#58b8ff"
+          fill="rgba(122, 216, 198, 0.24)"
+          stroke="#63bfa6"
           stroke-width="3"
         />
         <circle
@@ -32,7 +32,7 @@
           :cx="point.x"
           :cy="point.y"
           r="5"
-          fill="#2f6ac0"
+          fill="#4f8fcc"
         />
       </g>
       <g v-for="point in labelPoints" :key="`label_${point.label}`">
@@ -41,7 +41,7 @@
           :y="point.y"
           text-anchor="middle"
           dominant-baseline="middle"
-          fill="#325ea3"
+          fill="#5b6f8d"
           font-size="16"
           font-weight="700"
         >

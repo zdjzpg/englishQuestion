@@ -13,7 +13,8 @@
     "test:paper-validation": "node --test tests/paperValidation.test.cjs",
     "test:share-code": "node --test tests/shareCode.test.cjs",
     "test:audio-feedback": "node --test tests/audioFeedback.test.cjs",
-    "test:paper-edit-policy": "node --test tests/paperEditPolicy.test.cjs"
+    "test:paper-edit-policy": "node --test tests/paperEditPolicy.test.cjs",
+    "test:report-style": "node --test tests/reportKindergartenCraft.test.cjs"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",

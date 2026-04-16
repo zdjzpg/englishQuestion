@@ -25,6 +25,7 @@
   </Teleport>
 
   <div
+    ref="reportCaptureRef"
     v-if="state.currentPaper"
     :class="['app-shell', { 'paper-view-shell-intake': isIntakeState, 'paper-view-shell-exam': isExamState, 'paper-view-shell-report': isReportState }]"
   >
@@ -37,15 +38,15 @@
           </div>
         </div>
         <div class="chip-row">
-          <div class="chip">📝 {{ state.currentPaper.questions.length }} 道题</div>
-          <div class="chip">⭐ 总分 {{ currentPaperTotal }}</div>
+          <div class="chip">馃摑 {{ state.currentPaper.questions.length }} 閬撻</div>
+          <div class="chip">猸?鎬诲垎 {{ currentPaperTotal }}</div>
         </div>
       </div>
 
       <div class="main-grid intake-grid">
         <div class="card">
           <div class="card-title">
-            <h2>填写学生信息</h2>
+            <h2>濉啓瀛︾敓淇℃伅</h2>
           </div>
           <div class="field-grid two">
             <div class="field">
@@ -140,66 +141,18 @@
       </div>
     </template>
 
-    <template v-else-if="state.report">
-      <div ref="reportCaptureRef">
-        <div class="hero">
-          <div class="hero-top">
-            <div>
-              <h1 class="hero-title">卷子作答结果</h1>
-              <p class="hero-subtitle">学生：{{ state.student.name || '-' }} · 学校：{{ state.student.school || '-' }} · 联系方式：{{ state.student.phone || '-' }}</p>
-            </div>
-            <div class="hero-actions">
-              <button class="btn btn-secondary" @click="downloadReportImage">导出报告图片</button>
-              <button class="btn btn-primary" @click="downloadCurrentReport">下载报告 HTML</button>
-            </div>
-          </div>
-          <div class="chip-row">
-            <div class="chip">🏆 总分 {{ state.report.total }} / {{ state.report.totalPossible }}</div>
-            <div class="chip">📈 完成率 {{ state.report.percent }}%</div>
-            <div v-if="state.rewardResult" class="chip">🎁 抽中：{{ state.rewardResult.name }}</div>
-          </div>
-        </div>
-
-        <div class="report-grid">
-          <div class="summary-kpis">
-            <div class="kpi">
-              <div class="kpi-label">综合得分</div>
-              <div class="kpi-value">{{ state.report.total }}</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">总分</div>
-              <div class="kpi-value">{{ state.report.totalPossible }}</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">完成率</div>
-              <div class="kpi-value">{{ state.report.percent }}%</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">题目数量</div>
-              <div class="kpi-value">{{ state.currentPaper.questions.length }}</div>
-            </div>
-          </div>
-
-          <div v-if="hasReportComments" class="card">
-            <div class="card-title">
-              <h2>教师评语</h2>
-            </div>
-            <div class="stack">
-              <p v-if="state.report.comments?.opening" class="muted">{{ state.report.comments.opening }}</p>
-              <p v-if="state.report.comments?.middle" class="muted">{{ state.report.comments.middle }}</p>
-              <p v-if="state.report.comments?.closing" class="muted">{{ state.report.comments.closing }}</p>
-            </div>
-          </div>
-
-          <div v-if="reportAbilityItems.length" class="card">
-            <div class="card-title">
-              <h2>能力雷达图</h2>
-              <span class="tag">{{ reportAbilityItems.map((item) => item.label).join(' / ') }}</span>
-            </div>
-            <AbilityRadarChart :items="reportAbilityItems" />
-          </div>
-        </div>
-      </div>
+        <template v-else-if="state.report">
+      <StudentCraftReport
+        :student="state.student"
+        :report="state.report"
+        :report-ability-items="reportAbilityItems"
+        :report-comment-display="reportCommentDisplay"
+        :question-count="state.currentPaper.questions.length"
+        :reward-name="state.rewardResult?.name || ''"
+        :layout-mode="reportLayoutMode"
+        @download-image="downloadReportImage"
+        @download-html="downloadCurrentReport"
+      />
     </template>
   </div>
 </template>
@@ -217,16 +170,20 @@ import SentenceSort from '../components/questions/SentenceSort.vue';
 import ReadAloud from '../components/questions/ReadAloud.vue';
 import ReadSentenceWithImage from '../components/questions/ReadSentenceWithImage.vue';
 import SpellBlank from '../components/questions/SpellBlank.vue';
-import AbilityRadarChart from '../components/shared/AbilityRadarChart.vue';
 import PlaybackAnimalOverlay from '../components/shared/PlaybackAnimalOverlay.vue';
 import RewardWheelOverlay from '../components/shared/RewardWheelOverlay.vue';
+import StudentCraftReport from '../components/shared/StudentCraftReport.vue';
 import StudentFinishOverlay from '../components/shared/StudentFinishOverlay.vue';
 import StudentOpeningOverlay from '../components/shared/StudentOpeningOverlay.vue';
 import layoutScaleUtils from '../shared/layoutScale';
 import questionAbilitiesUtils from '../shared/questionAbilities';
+import reportCommentsUtils from '../shared/reportComments';
+import reportImageExportUtils from '../shared/reportImageExport';
 import { useExamStore } from '../store/examStore';
 const { REPORT_ABILITIES } = questionAbilitiesUtils;
 const { calculateContainScale } = layoutScaleUtils;
+const { formatReportCommentsInline } = reportCommentsUtils;
+const { buildReportImageOptions } = reportImageExportUtils;
 const {
   state,
   currentQuestion,
@@ -292,9 +249,10 @@ const reportCaptureRef = ref(null);
 const questionFitViewportRef = ref(null);
 const questionFitContentRef = ref(null);
 const questionScale = ref(1);
-const hasReportComments = computed(() => Boolean(
-  state.report?.comments?.opening || state.report?.comments?.middle || state.report?.comments?.closing
-));
+const viewportWidth = ref(typeof window === 'undefined' ? 1920 : window.innerWidth);
+const reportCommentLine = computed(() => formatReportCommentsInline(state.report?.comments));
+const reportCommentDisplay = computed(() => reportCommentLine.value || '浠婂ぉ瀹屾垚寰楀緢璁ょ湡锛岀户缁妸浣犵殑鑻辫灏忔湰棰嗕竴鐐圭偣鏀堕泦璧锋潵鍚с€?);
+const reportLayoutMode = computed(() => (viewportWidth.value <= 1366 ? 'ipad' : 'desktop'));
 let finishTimer = null;
 let scaleFrameId = null;
 let scaleObserver = null;
@@ -382,7 +340,7 @@ async function downloadReportImage() {
   if (!reportCaptureRef.value) {
     return;
   }
-  const dataUrl = await toPng(reportCaptureRef.value, { cacheBust: true, pixelRatio: 2 });
+  const dataUrl = await toPng(reportCaptureRef.value, buildReportImageOptions());
   const link = document.createElement('a');
   link.href = dataUrl;
   link.download = `english-report-${Date.now()}.png`;
@@ -430,7 +388,7 @@ watch(() => currentQuestion.value?.id, async () => {
 });
 
 onMounted(() => {
-  window.addEventListener('resize', scheduleQuestionScale);
+  window.addEventListener('resize', handleViewportResize);
   scheduleQuestionScale();
 });
 
@@ -445,7 +403,14 @@ onBeforeUnmount(() => {
   clearScaleObserver();
   setExamBodyClass(false);
   setReportBodyClass(false);
-  window.removeEventListener('resize', scheduleQuestionScale);
+  window.removeEventListener('resize', handleViewportResize);
 });
+
+function handleViewportResize() {
+  viewportWidth.value = window.innerWidth;
+  scheduleQuestionScale();
+}
 </script>
+
+
 

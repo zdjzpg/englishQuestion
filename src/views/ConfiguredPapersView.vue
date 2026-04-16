@@ -62,7 +62,7 @@
         :pagination="false"
         :row-key="(record) => record.id"
         :custom-row="customRow"
-        :scroll="{ x: 1080 }"
+        :scroll="{ x: tableScrollX }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'examTitle'">
@@ -166,7 +166,7 @@ const columns = computed(() => {
     { title: '题数 / 总分', key: 'scoreSummary', width: 120 },
     { title: '答题记录', key: 'submissionCount', width: 110 },
     { title: '最近更新', key: 'updatedAt', width: 170 },
-    { title: '操作', key: 'actions', width: 360, align: 'right', fixed: 'right' }
+    { title: '操作', key: 'actions', width: 440, align: 'right', fixed: 'right' }
   ];
 
   if (state.authUser?.role === 'ADMIN') {
@@ -175,6 +175,7 @@ const columns = computed(() => {
 
   return base;
 });
+const tableScrollX = computed(() => columns.value.reduce((sum, column) => sum + Number(column.width || 0), 0));
 
 onMounted(async () => {
   await refreshPapers();

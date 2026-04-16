@@ -1299,7 +1299,6 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   box-shadow: 0 20px 28px rgba(255, 185, 87, 0.28);
   pointer-events: none;
   z-index: 6;
-  transform: translate(-50%, -50%);
 }
 
 @keyframes looseLetterFloat {
@@ -2469,6 +2468,13 @@ body.exam-single-screen .paper-view-shell-exam .footer-actions {
   height: 100%;
 }
 
+.student-craft-report {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
 body.report-single-screen .paper-view-shell-report .hero {
   padding: 20px 24px 18px;
   flex: 0 0 auto;
@@ -2483,6 +2489,344 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 24px;
+}
+
+.report-craft-shell {
+  gap: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 248, 219, 0.72), transparent 20%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.92), rgba(249, 253, 255, 0.9));
+}
+
+.student-craft-report .report-grid.report-craft-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.craft-sticker-row {
+  gap: 12px;
+}
+
+.craft-sticker {
+  color: #5b4a36;
+  background: rgba(255, 253, 245, 0.88);
+  border: 1px solid rgba(174, 144, 109, 0.16);
+  box-shadow: 0 8px 18px rgba(123, 109, 72, 0.12);
+}
+
+.craft-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.craft-kpi {
+  color: #5b4a36;
+  border-radius: 24px;
+  padding: 18px;
+  border: 2px solid rgba(152, 128, 92, 0.12);
+  box-shadow: 0 12px 28px rgba(122, 107, 74, 0.08);
+}
+
+.craft-kpi .kpi-label {
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.craft-kpi .kpi-value {
+  color: #5b4a36;
+  text-shadow: none;
+}
+
+.craft-kpi.craft-kpi-score {
+  background: linear-gradient(180deg, #ffe9a8 0%, #fff8db 100%);
+}
+
+.craft-kpi.craft-kpi-total {
+  background: linear-gradient(180deg, #ffd6e7 0%, #fff1f7 100%);
+}
+
+.craft-kpi.craft-kpi-percent {
+  background: linear-gradient(180deg, #bfe7ff 0%, #eef9ff 100%);
+}
+
+.craft-kpi.craft-kpi-count {
+  background: linear-gradient(180deg, #cdf0d7 0%, #f2fcf5 100%);
+}
+
+.craft-report-panels {
+  grid-template-columns: 1.16fr 0.94fr;
+  gap: 18px;
+}
+
+.craft-progress-card,
+.craft-radar-card,
+.craft-note-card {
+  border-color: rgba(195, 215, 230, 0.7);
+}
+
+.craft-progress-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 251, 255, 0.98));
+}
+
+.craft-radar-card {
+  background: linear-gradient(180deg, rgba(255, 253, 244, 0.98), rgba(245, 252, 250, 0.98));
+}
+
+.craft-note-card {
+  background:
+    linear-gradient(180deg, #fff7cf 0%, #fffdf3 100%);
+  border: 2px dashed rgba(222, 183, 91, 0.45);
+}
+
+.craft-panel-intro {
+  margin: -4px 0 8px;
+  color: #70829c;
+  line-height: 1.6;
+}
+
+.craft-progress-list {
+  display: grid;
+  gap: 14px;
+}
+
+.craft-progress-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 100px) minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 12px;
+}
+
+.craft-progress-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.craft-progress-meta {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c8aa0;
+}
+
+.craft-progress-track {
+  height: 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #edf8ff;
+  border: 1px solid rgba(160, 207, 237, 0.45);
+}
+
+.craft-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7fd9ff 0%, #7fe6b7 100%);
+}
+
+.craft-progress-value {
+  font-weight: 800;
+  color: #597195;
+  text-align: right;
+}
+
+.craft-note-text {
+  min-height: 76px;
+  margin: 0;
+  color: #6a5d43;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.student-craft-report--desktop .hero {
+  padding: 18px 22px 16px;
+}
+
+.student-craft-report--desktop .hero-title {
+  font-size: clamp(24px, 2.5vw, 36px);
+}
+
+.student-craft-report--desktop .hero-subtitle {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.student-craft-report--desktop .chip-row {
+  gap: 10px;
+}
+
+.student-craft-report--desktop .report-grid.report-craft-shell {
+  padding: 16px 20px 18px;
+  gap: 14px;
+}
+
+.student-craft-report--desktop .craft-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.student-craft-report--desktop .craft-kpi {
+  padding: 14px 16px;
+  border-radius: 22px;
+}
+
+.student-craft-report--desktop .craft-report-panels {
+  grid-template-columns: 1.08fr 0.92fr;
+  gap: 14px;
+}
+
+.student-craft-report--desktop .card {
+  padding: 18px;
+}
+
+.student-craft-report--desktop .craft-panel-intro {
+  margin: -2px 0 6px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.student-craft-report--desktop .craft-progress-list {
+  gap: 10px;
+}
+
+.student-craft-report--desktop .craft-progress-row {
+  gap: 10px;
+}
+
+.student-craft-report--desktop .craft-progress-track {
+  height: 16px;
+}
+
+.student-craft-report--desktop .report-radar-card .radar {
+  width: min(240px, 100%);
+}
+
+.student-craft-report--desktop .report-radar-card .ability-radar-kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-craft-report--desktop .craft-note-text {
+  min-height: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.student-craft-report--ipad .hero {
+  padding: 14px 16px 14px;
+}
+
+.student-craft-report--ipad .hero-top {
+  gap: 12px;
+}
+
+.student-craft-report--ipad .hero-title {
+  font-size: 24px;
+}
+
+.student-craft-report--ipad .hero-subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  max-width: none;
+}
+
+.student-craft-report--ipad .hero-actions {
+  gap: 10px;
+}
+
+.student-craft-report--ipad .hero-actions .btn {
+  min-height: 46px;
+  padding-inline: 16px;
+}
+
+.student-craft-report--ipad .chip-row {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.student-craft-report--ipad .chip {
+  padding: 8px 12px;
+}
+
+.student-craft-report--ipad .report-grid.report-craft-shell {
+  padding: 14px 16px 16px;
+  gap: 12px;
+}
+
+.student-craft-report--ipad .craft-kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-craft-report--ipad .craft-kpi {
+  padding: 12px 14px;
+  border-radius: 20px;
+}
+
+.student-craft-report--ipad .craft-kpi .kpi-value {
+  font-size: 28px;
+}
+
+.student-craft-report--ipad .craft-report-panels {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 12px;
+}
+
+.student-craft-report--ipad .card {
+  padding: 16px;
+  border-radius: 24px;
+}
+
+.student-craft-report--ipad .craft-panel-intro {
+  margin: -2px 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.student-craft-report--ipad .craft-progress-list {
+  gap: 8px;
+}
+
+.student-craft-report--ipad .craft-progress-row {
+  grid-template-columns: 74px minmax(0, 1fr) 42px;
+  gap: 8px;
+}
+
+.student-craft-report--ipad .craft-progress-track {
+  height: 14px;
+}
+
+.student-craft-report--ipad .craft-progress-meta,
+.student-craft-report--ipad .craft-progress-value {
+  font-size: 12px;
+}
+
+.student-craft-report--ipad .report-radar-card .radar {
+  width: min(180px, 100%);
+}
+
+.student-craft-report--ipad .report-radar-card .ability-radar-kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-craft-report--ipad .report-radar-card .ability-radar-kpis .kpi {
+  padding: 10px 12px;
+}
+
+.student-craft-report--ipad .craft-note-text {
+  min-height: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.report-radar-card .radar {
+  filter: drop-shadow(0 10px 22px rgba(120, 168, 154, 0.12));
+}
+
+.report-radar-card .ability-radar-kpis .kpi {
+  color: #5b4a36;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(188, 212, 216, 0.72);
+  box-shadow: none;
 }
 
 .bars {
@@ -2569,7 +2913,7 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   min-height: 100vh;
   height: 100vh;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 176px minmax(0, 1fr);
   background:
     radial-gradient(circle at top right, rgba(112, 196, 255, 0.16), transparent 20%),
     linear-gradient(180deg, #eff6fc 0%, #f7fbff 100%);
@@ -2577,7 +2921,7 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .admin-sidebar {
   min-height: 100vh;
-  padding: 26px 18px;
+  padding: 20px 10px;
   background:
     radial-gradient(circle at top left, rgba(108, 172, 255, 0.18), transparent 16%),
     linear-gradient(180deg, var(--admin-sidebar) 0%, var(--admin-sidebar-soft) 100%);
@@ -2594,8 +2938,8 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 }
 
 .admin-brand-mark {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 14px;
   display: grid;
   place-items: center;
@@ -2608,7 +2952,7 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .admin-brand-name {
   font-family: var(--font-admin);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #f8fbff;
 }
@@ -2632,13 +2976,13 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 
 .admin-nav-item {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 16px;
   background: transparent;
   color: #c9d9ea;
   text-align: left;
   font-family: var(--font-admin);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
@@ -2820,7 +3164,7 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 6px;
+  padding-right: 18px;
 }
 
 .admin-nav-menu.ant-menu {
@@ -2859,8 +3203,17 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.admin-section-header .ant-space {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+  row-gap: 8px;
 }
 
 .admin-section-header h2 {
@@ -3286,14 +3639,26 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 }
 
 .admin-papers-actions {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   flex-wrap: wrap;
   justify-content: flex-end;
+  column-gap: 8px;
   row-gap: 8px;
   max-width: 100%;
 }
 
 .admin-papers-actions .ant-space-item {
+  max-width: 100%;
+}
+
+.admin-answer-actions {
+  width: 100%;
+  justify-content: flex-end;
+  row-gap: 8px;
+}
+
+.admin-answer-actions .ant-space-item {
   max-width: 100%;
 }
 
@@ -3451,6 +3816,8 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   }
 
   .main-grid,
+  .craft-kpi-grid,
+  .craft-report-panels,
   .report-panels,
   .read-panel {
     grid-template-columns: 1fr;
@@ -3495,6 +3862,22 @@ body.report-single-screen .paper-view-shell-report .report-grid {
 }
 
 @media (max-width: 1366px) and (min-width: 768px) {
+  .admin-shell {
+    grid-template-columns: 152px minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    padding: 18px 8px;
+  }
+
+  .admin-main-layout {
+    padding: 18px 18px 18px;
+  }
+
+  .admin-section {
+    padding: 18px;
+  }
+
   .public-root {
     width: min(96vw, 1400px);
     padding-top: 16px;
@@ -3533,6 +3916,8 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   }
 
   .main-grid,
+  .craft-kpi-grid,
+  .craft-report-panels,
   .report-panels,
   .read-panel {
     grid-template-columns: 1fr;
@@ -3545,6 +3930,15 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   .field-grid.two,
   .summary-kpis {
     grid-template-columns: 1fr;
+  }
+
+  .craft-progress-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .craft-progress-value {
+    text-align: left;
   }
 
   .hero-top,

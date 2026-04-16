@@ -61,8 +61,17 @@ function resolveReportComments(config, totalScore) {
   };
 }
 
+function formatReportCommentsInline(comments = {}) {
+  return [
+    String(comments.opening || '').trim(),
+    String(comments.middle || '').trim(),
+    String(comments.closing || '').trim()
+  ].filter(Boolean).join('; ');
+}
+
 module.exports = {
   createDefaultReportCommentConfig,
+  formatReportCommentsInline,
   normalizeReportCommentConfig,
   resolveReportComments,
   validateReportCommentConfig

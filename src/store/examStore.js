@@ -51,7 +51,12 @@ const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
 const { REPORT_ABILITIES, getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilitiesUtils;
 const { evaluateNewQuestionAnswer } = questionTypeSupport;
 const { buildWeightedAbilityMap, toAbilityItems } = reportAbilitiesUtils;
-const { normalizeReportCommentConfig, resolveReportComments, validateReportCommentConfig } = reportCommentsUtils;
+const {
+  formatReportCommentsInline,
+  normalizeReportCommentConfig,
+  resolveReportComments,
+  validateReportCommentConfig
+} = reportCommentsUtils;
 const { chooseSpeechVoice, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
 
 function createEmptyEditingPaper() {
@@ -916,6 +921,7 @@ export function useExamStore() {
       if (!state.report) {
         return;
       }
+      const commentLine = formatReportCommentsInline(state.report.comments);
       const html = [
         '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>英语测评报告</title>',
         '<style>body{font-family:Arial,sans-serif;padding:32px;color:#24456f}h1{color:#2a67b5}.card{border:1px solid #d8e8ff;border-radius:14px;padding:16px;margin-bottom:18px;background:#f8fbff}.line{margin:8px 0}</style>',
@@ -923,9 +929,7 @@ export function useExamStore() {
         `<div class="card"><strong>学生：</strong>${state.student.name || '-'}<br><strong>年龄：</strong>${state.student.age || '-'}<br><strong>电话：</strong>${state.student.phone || '-'}<br><strong>学校：</strong>${state.student.school || '-'}<br><strong>年级：</strong>${state.student.grade || '-'}</div>`,
         `<div class="card"><strong>总分：</strong>${state.report.total} / ${state.report.totalPossible}<br><strong>完成率：</strong>${state.report.percent}%</div>`,
         '<div class="card"><strong>教师评语</strong>',
-        state.report.comments?.opening ? `<div class="line">${state.report.comments.opening}</div>` : '',
-        state.report.comments?.middle ? `<div class="line">${state.report.comments.middle}</div>` : '',
-        state.report.comments?.closing ? `<div class="line">${state.report.comments.closing}</div>` : '',
+        commentLine ? `<div class="line">${commentLine}</div>` : '',
         '</div></body></html>'
       ].join('');
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });

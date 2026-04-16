@@ -57,8 +57,10 @@
 /* global defineProps, defineEmits */
 import { computed, onBeforeUnmount, ref } from 'vue';
 import listenChooseLetterLayoutUtils from '../../shared/listenChooseLetterLayout';
+import listenChooseLetterDragUtils from '../../shared/listenChooseLetterDrag';
 
 const { buildLetterScatterLayouts } = listenChooseLetterLayoutUtils;
+const { createEmptyDragState, buildDragState, getDragGhostPosition } = listenChooseLetterDragUtils;
 
 const props = defineProps({
   question: { type: Object, required: true },
@@ -72,23 +74,17 @@ const letterRefs = ref({});
 const activeSlotKey = ref('');
 const returningLetterId = ref('');
 const celebratingSlotKey = ref('');
-const dragState = ref({
-  id: '',
-  letter: '',
-  startX: 0,
-  startY: 0,
-  pointerX: 0,
-  pointerY: 0,
-  offsetX: 0,
-  offsetY: 0
-});
+const dragState = ref(createEmptyDragState());
 
 const selectedLetters = computed(() => props.answer.selectedLetters || []);
 const displayOptions = computed(() => props.question.displayOptions || props.question.options || []);
-const dragGhostStyle = computed(() => ({
-  left: `${dragState.value.pointerX}px`,
-  top: `${dragState.value.pointerY}px`
-}));
+const dragGhostStyle = computed(() => {
+  const position = getDragGhostPosition(dragState.value);
+  return {
+    left: `${position.left}px`,
+    top: `${position.top}px`
+  };
+});
 
 const letterSlots = computed(() => {
   if (props.question.requireBothCases) {
@@ -194,16 +190,7 @@ function hitSlotAtPoint(clientX, clientY) {
 function resetLetterPosition(letterId, offsetX = 0, offsetY = 0) {
   const node = letterRefs.value[letterId];
   returningLetterId.value = letterId;
-  dragState.value = {
-    id: '',
-    letter: '',
-    startX: 0,
-    startY: 0,
-    pointerX: 0,
-    pointerY: 0,
-    offsetX: 0,
-    offsetY: 0
-  };
+  dragState.value = createEmptyDragState();
   activeSlotKey.value = '';
   if (node?.animate) {
     node.animate([
@@ -243,16 +230,7 @@ function celebrateHome(slot) {
 function snapLetterToHome(slot, letter) {
   celebrateHome(slot);
   emit('set-letter-slot', { slotIndex: slot.index, letter });
-  dragState.value = {
-    id: '',
-    letter: '',
-    startX: 0,
-    startY: 0,
-    pointerX: 0,
-    pointerY: 0,
-    offsetX: 0,
-    offsetY: 0
-  };
+  dragState.value = createEmptyDragState();
   activeSlotKey.value = '';
   returningLetterId.value = '';
 }
@@ -293,16 +271,12 @@ function startDrag(item, event) {
     return;
   }
   returningLetterId.value = '';
-  dragState.value = {
-    id: item.id,
-    letter: item.letter,
-    startX: event.clientX,
-    startY: event.clientY,
-    pointerX: event.clientX,
-    pointerY: event.clientY,
-    offsetX: 0,
-    offsetY: 0
-  };
+  dragState.value = buildDragState({
+    item,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    rect: event.currentTarget?.getBoundingClientRect?.()
+  });
   activeSlotKey.value = '';
   event.currentTarget.setPointerCapture?.(event.pointerId);
 }

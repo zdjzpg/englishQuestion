@@ -53,8 +53,10 @@
         :data-source="filteredSubmissions"
         :pagination="false"
         :row-key="(record) => record.id"
-        :expandable="expandableConfig"
+        :expanded-row-keys="expandedRowKeys"
+        :show-expand-column="false"
         :scroll="{ x: 1080 }"
+        @expand="handleRowExpand"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'studentName'">
@@ -84,9 +86,16 @@
           </template>
 
           <template v-else-if="column.key === 'actions'">
-            <a-space>
+            <a-space wrap class="admin-answer-actions">
               <a-button type="primary" size="small" @click="toggleExpanded(record.id)">
                 {{ expandedSubmissionId === record.id ? '收起明细' : '查看明细' }}
+              </a-button>
+              <a-button
+                size="small"
+                :loading="generatingSubmissionId === record.id"
+                @click="downloadSubmissionReportImage(record)"
+              >
+                生成报告图片
               </a-button>
               <a-button size="small" :disabled="!record.reward" @click="openRewardModal(record)">查看礼品</a-button>
             </a-space>
@@ -129,15 +138,21 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { createApp, computed, nextTick, onMounted, ref, watch } from 'vue';
+import { message } from 'ant-design-vue';
+import { toPng } from 'html-to-image';
 import { useRoute, useRouter } from 'vue-router';
+import SubmissionReportCapture from '../components/shared/SubmissionReportCapture.vue';
+import reportImageExportUtils from '../shared/reportImageExport';
 import { useExamStore } from '../store/examStore';
 
+const { buildReportImageOptions } = reportImageExportUtils;
 const router = useRouter();
 const route = useRoute();
 const { configuredPapers, fetchPapers, loadSubmissionsByPaper, state } = useExamStore();
 const studentKeyword = ref('');
 const expandedSubmissionId = ref('');
+const generatingSubmissionId = ref('');
 const rewardModalOpen = ref(false);
 const rewardModalSubmission = ref(null);
 const selectedPaperId = computed(() => (typeof route.query.paperId === 'string' ? route.query.paperId : ''));
@@ -163,6 +178,7 @@ const averagePercent = computed(() => {
   const total = filteredSubmissions.value.reduce((sum, submission) => sum + Number(submission.report.percent || 0), 0);
   return Math.round(total / filteredSubmissions.value.length);
 });
+const expandedRowKeys = computed(() => (expandedSubmissionId.value ? [expandedSubmissionId.value] : []));
 
 const columns = [
   { title: '学生', key: 'studentName', width: 160 },
@@ -171,7 +187,7 @@ const columns = [
   { title: '得分', key: 'scoreSummary', width: 120 },
   { title: '完成率', key: 'percent', width: 120 },
   { title: '提交时间', key: 'submittedAt', width: 180 },
-  { title: '操作', key: 'actions', width: 220, align: 'right' }
+  { title: '操作', key: 'actions', width: 360, align: 'right' }
 ];
 
 const detailColumns = [
@@ -181,13 +197,6 @@ const detailColumns = [
   { title: '标准答案', dataIndex: 'correctText', key: 'correctText' },
   { title: '得分', key: 'score', customRender: ({ record }) => `${record.gained} / ${record.total}`, width: 120 }
 ];
-
-const expandableConfig = computed(() => ({
-  expandedRowKeys: expandedSubmissionId.value ? [expandedSubmissionId.value] : [],
-  onExpand: (expanded, record) => {
-    expandedSubmissionId.value = expanded ? record.id : '';
-  }
-}));
 
 onMounted(async () => {
   await fetchPapers();
@@ -211,6 +220,61 @@ function editPaper() {
 
 function toggleExpanded(submissionId) {
   expandedSubmissionId.value = expandedSubmissionId.value === submissionId ? '' : submissionId;
+}
+
+function handleRowExpand(expanded, record) {
+  expandedSubmissionId.value = expanded ? record.id : '';
+}
+
+async function downloadSubmissionReportImage(submission) {
+  if (!submission || generatingSubmissionId.value) {
+    return;
+  }
+
+  const mountHost = document.createElement('div');
+  let app = null;
+  generatingSubmissionId.value = submission.id;
+
+  try {
+    mountHost.style.position = 'fixed';
+    mountHost.style.left = '-10000px';
+    mountHost.style.top = '0';
+    mountHost.style.width = '1280px';
+    mountHost.style.pointerEvents = 'none';
+    mountHost.style.zIndex = '-1';
+    document.body.appendChild(mountHost);
+
+    app = createApp(SubmissionReportCapture, {
+      student: submission.student || {},
+      report: submission.report || {},
+      questionCount: Array.isArray(submission.records) ? submission.records.length : 0,
+      reward: submission.reward || null
+    });
+    app.mount(mountHost);
+
+    await nextTick();
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(resolve);
+      });
+    });
+
+    const captureNode = mountHost.firstElementChild || mountHost;
+    const dataUrl = await toPng(captureNode, buildReportImageOptions());
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `submission-report-${submission.id}.png`;
+    link.click();
+    message.success('报告图片已生成');
+  } catch (error) {
+    message.error('生成报告图片失败，请稍后重试');
+  } finally {
+    if (app) {
+      app.unmount();
+    }
+    mountHost.remove();
+    generatingSubmissionId.value = '';
+  }
 }
 
 function openRewardModal(submission) {
