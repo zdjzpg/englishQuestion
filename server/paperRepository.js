@@ -7,6 +7,7 @@ const questionDifficulty = require('../src/shared/questionDifficulty');
 const studentExperience = require('../src/shared/studentExperience');
 const reportComments = require('../src/shared/reportComments');
 const followInstruction = require('../src/shared/followInstruction');
+const questionTypeMeta = require('../src/shared/questionTypeMeta');
 
 const { getMissingStudentFields } = studentValidation;
 const { getPaperScoreSummary } = paperValidation;
@@ -16,6 +17,7 @@ const { normalizeQuestionDifficulty } = questionDifficulty;
 const { normalizeRewardConfig, pickRewardItem, validateRewardConfig } = studentExperience;
 const { validateReportCommentConfig } = reportComments;
 const { validateInstructionQuestion } = followInstruction;
+const { getQuestionTypeLabel } = questionTypeMeta;
 
 function parseQuestionRow(row) {
   return {
@@ -637,7 +639,11 @@ async function saveSubmission({
           questionRow.sort_no,
           questionRow.question_type,
           questionRow.prompt,
-          JSON.stringify({ studentText: record.studentText || '' }),
+          JSON.stringify({
+            studentText: record.studentText || '',
+            audioPath: record.audioPath || '',
+            audioMimeType: record.audioMimeType || ''
+          }),
           JSON.stringify({ correctText: record.correctText || '' }),
           Number(record.gained || 0),
           Number(record.total || 0),
@@ -744,9 +750,12 @@ async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
 
           return {
             index: Number(answer.sort_no),
-            meta: { label: answer.question_type },
+            meta: { label: getQuestionTypeLabel(answer.question_type) },
             prompt: answer.prompt || '',
             studentText: studentAnswer?.studentText || '',
+            audioPath: studentAnswer?.audioPath || '',
+            audioUrl: studentAnswer?.audioPath ? `/api/uploads/${String(studentAnswer.audioPath).replace(/\\/g, '/')}` : '',
+            audioMimeType: studentAnswer?.audioMimeType || '',
             correctText: correctAnswer?.correctText || '',
             gained: Number(answer.gained_score),
             total: Number(answer.total_score),

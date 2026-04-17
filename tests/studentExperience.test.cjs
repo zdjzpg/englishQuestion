@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   chooseSpeechVoice,
   createSpeechPlaybackPlan,
+  getSpeechPlaybackTuning,
   loadSpeechVoices,
   resolveSpeechPlaybackSettings,
   normalizeRewardConfig,
@@ -24,6 +25,16 @@ test('chooseSpeechVoice prefers english voices when available', () => {
   ]);
 
   assert.equal(voice.name, 'English Voice');
+});
+
+test('chooseSpeechVoice prefers clearer google english voices before other english voices', () => {
+  const voice = chooseSpeechVoice([
+    { name: 'Google US English', lang: 'en-US', default: false },
+    { name: 'Google UK English Female', lang: 'en-GB', default: false },
+    { name: 'Microsoft Huihui - Chinese (Simplified, PRC)', lang: 'zh-CN', default: true }
+  ]);
+
+  assert.equal(voice.name, 'Google UK English Female');
 });
 
 test('chooseSpeechVoice falls back to default voice when no english voice exists', () => {
@@ -122,6 +133,13 @@ test('createSpeechPlaybackPlan skips the fallback when only the default voice is
   assert.equal(plan.primary.voice.name, 'Microsoft Huihui - Chinese (Simplified, PRC)');
   assert.equal(plan.primary.lang, 'zh-CN');
   assert.equal(plan.fallback, null);
+});
+
+test('getSpeechPlaybackTuning keeps listening playback slower and steadier for children', () => {
+  const tuning = getSpeechPlaybackTuning('listening');
+
+  assert.equal(tuning.rate, 0.68);
+  assert.equal(tuning.pitch, 1);
 });
 
 test('normalizeRewardConfig keeps only valid positive-probability items', () => {

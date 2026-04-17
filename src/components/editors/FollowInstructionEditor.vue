@@ -236,7 +236,7 @@ const {
   createRectTarget,
   normalizeDraggableObject
 } = followInstructionUtils;
-const { loadSpeechVoices, resolveSpeechPlaybackSettings } = studentExperienceUtils;
+const { getSpeechPlaybackTuning, loadSpeechVoices, resolveSpeechPlaybackSettings } = studentExperienceUtils;
 
 const props = defineProps({
   question: { type: Object, required: true }
@@ -354,8 +354,9 @@ function previewInstruction() {
   const utter = new SpeechSynthesisUtterance(props.question.instructionText);
   const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
   const speechSettings = resolveSpeechPlaybackSettings(voices);
-  utter.rate = 0.9;
-  utter.pitch = 1.05;
+  const playbackTuning = getSpeechPlaybackTuning('demo_playing');
+  utter.rate = playbackTuning.rate;
+  utter.pitch = playbackTuning.pitch;
   utter.lang = speechSettings.lang;
   if (speechSettings.voice) {
     utter.voice = speechSettings.voice;

@@ -237,7 +237,7 @@ watch(() => props.result, async (value) => {
 function labelStyle(index) {
   const step = 360 / Math.max(props.items.length, 1);
   return {
-    transform: `rotate(${index * step}deg) translateY(-122px) rotate(${-index * step}deg)`
+    transform: `translate(-50%, -50%) rotate(${index * step}deg) translateY(-104px) rotate(${-index * step}deg)`
   };
 }
 </script>

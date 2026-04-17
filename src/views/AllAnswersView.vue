@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { createApp, computed, nextTick, onMounted, ref, watch } from 'vue';
+import { createApp, computed, h, nextTick, onMounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { toPng } from 'html-to-image';
 import { useRoute, useRouter } from 'vue-router';
@@ -194,8 +194,8 @@ const columns = [
 
 const detailColumns = [
   { title: '题号', dataIndex: 'index', key: 'index', width: 80 },
-  { title: '题型', dataIndex: ['meta', 'label'], key: 'type', width: 160 },
-  { title: '学生作答', dataIndex: 'studentText', key: 'studentText' },
+  { title: '题型', key: 'type', width: 160, customRender: ({ record }) => record.meta?.label || '-' },
+  { title: '学生作答', key: 'studentText', customRender: ({ record }) => renderStudentAnswer(record) },
   { title: '标准答案', dataIndex: 'correctText', key: 'correctText' },
   { title: '得分', key: 'score', customRender: ({ record }) => `${record.gained} / ${record.total}`, width: 120 }
 ];
@@ -226,6 +226,25 @@ function toggleExpanded(submissionId) {
 
 function handleRowExpand(expanded, record) {
   expandedSubmissionId.value = expanded ? record.id : '';
+}
+
+function renderStudentAnswer(record) {
+  const nodes = [
+    h('div', { class: 'admin-answer-text' }, record.studentText || '未作答')
+  ];
+
+  if (record.audioUrl) {
+    nodes.push(
+      h('audio', {
+        class: 'admin-answer-audio',
+        controls: true,
+        preload: 'none',
+        src: record.audioUrl
+      })
+    );
+  }
+
+  return h('div', { class: 'admin-answer-response' }, nodes);
 }
 
 async function downloadSubmissionReportImage(submission) {

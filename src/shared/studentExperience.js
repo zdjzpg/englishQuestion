@@ -3,7 +3,15 @@ function chooseSpeechVoice(voices = []) {
     return null;
   }
 
-  const englishVoice = voices.find((voice) => /^en(-|$)/i.test(voice.lang || ''));
+  const preferredEnglishVoiceNames = [
+    'Google UK English Female',
+    'Google UK English Male',
+    'Google US English'
+  ];
+  const englishVoices = voices.filter((voice) => /^en(-|$)/i.test(voice.lang || ''));
+  const englishVoice = preferredEnglishVoiceNames
+    .map((name) => englishVoices.find((voice) => voice.name === name))
+    .find(Boolean) || englishVoices[0];
   if (englishVoice) {
     return englishVoice;
   }
@@ -73,6 +81,13 @@ function createSpeechPlaybackPlan(voices = []) {
     primary,
     fallback
   };
+}
+
+function getSpeechPlaybackTuning(kind = 'listening') {
+  if (kind === 'demo_playing') {
+    return { rate: 0.76, pitch: 1 };
+  }
+  return { rate: 0.68, pitch: 1 };
 }
 
 function normalizeRewardConfig(config = {}) {
@@ -180,6 +195,7 @@ function pickRewardItem(config = {}, randomValue = Math.random()) {
 module.exports = {
   chooseSpeechVoice,
   createSpeechPlaybackPlan,
+  getSpeechPlaybackTuning,
   loadSpeechVoices,
   resolveSpeechPlaybackSettings,
   createDefaultRewardConfig,

@@ -22,8 +22,8 @@ test('styles define separate desktop and ipad report layouts without page scroll
   const stylesSource = read('src/styles.css');
 
   assert.match(stylesSource, /body\.report-single-screen\s*\{[\s\S]*overflow:\s*hidden;/, 'expected report mode to stay single-screen');
-  assert.match(stylesSource, /\.student-craft-report--desktop[\s\S]*?\.craft-report-panels\s*\{[\s\S]*grid-template-columns:/, 'expected desktop craft report layout rules');
-  assert.match(stylesSource, /\.student-craft-report--ipad[\s\S]*?\.craft-report-panels\s*\{[\s\S]*grid-template-columns:/, 'expected ipad craft report layout rules');
+  assert.match(stylesSource, /\.student-craft-report--desktop \.craft-report-panels\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, 'expected desktop craft report layout rules');
+  assert.match(stylesSource, /\.student-craft-report--ipad \.craft-report-panels\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, 'expected ipad craft report layout rules');
 });
 
 test('ipad report layout compacts the radar card internals so the bottom metrics do not overflow into the note card', () => {

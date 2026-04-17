@@ -31,13 +31,8 @@
             :class="{ recording: audioState.readAloudState === 'recording' }"
             @click="$emit('start-speech', question.id, question.phrase)"
           >
-            {{ audioState.readAloudState === 'recording' ? '🎙️ 录音中...' : '🎤 开始跟读' }}
+            {{ audioState.readAloudState === 'recording' ? '结束录音' : '开始跟读' }}
           </button>
-          <button class="btn btn-ghost read-demo-btn" @click="$emit('mock-score', question.id)">使用演示结果</button>
-        </div>
-        <div class="field" style="margin-top: 18px;">
-          <label>识别文本 / AI 返回</label>
-          <input readonly :value="answer.transcript || '等待开始识别'" />
         </div>
       </div>
     </div>
@@ -53,5 +48,5 @@ defineProps({
   audioState: { type: Object, required: true }
 });
 
-defineEmits(['speak', 'start-speech', 'mock-score']);
+defineEmits(['speak', 'start-speech']);
 </script>

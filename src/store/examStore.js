@@ -30,6 +30,7 @@ import {
   resetUserPassword as apiResetUserPassword,
   setStoredAuthToken,
   updatePaper as apiUpdatePaper,
+  uploadAnswerAudio,
   updateUserStatus as apiUpdateUserStatus
 } from '../api/client';
 import studentValidation from '../shared/studentValidation';
@@ -60,7 +61,7 @@ const {
   resolveReportComments,
   validateReportCommentConfig
 } = reportCommentsUtils;
-const { createSpeechPlaybackPlan, loadSpeechVoices, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
+const { createSpeechPlaybackPlan, getSpeechPlaybackTuning, loadSpeechVoices, normalizeRewardConfig, validateRewardConfig } = studentExperienceUtils;
 const { validateInstructionQuestion } = followInstructionUtils;
 
 function createEmptyEditingPaper() {
@@ -133,10 +134,14 @@ function buildRecordItems(paper, answers) {
         ...(TYPE_META[question.type] || { label: question.type, ability: '-', icon: '📝' }),
         ability: questionAbilities.join(' / ') || '-'
       },
+      questionType: question.type,
       abilities: questionAbilities,
       prompt: question.prompt,
       correctText,
       studentText,
+      audioPath: answer.audioPath || '',
+      audioUrl: answer.audioUrl || '',
+      audioMimeType: answer.audioMimeType || '',
       gained,
       total: question.score,
       status: gained >= question.score * 0.7 ? '通过' : '待加强'
@@ -206,6 +211,16 @@ function syncLegacyCurrentPaper() {
   state.paper = state.currentPaper;
 }
 
+const MICROPHONE_QUESTION_TYPES = new Set([
+  'read_aloud',
+  'listen_answer_question',
+  'read_sentence_with_image'
+]);
+
+const activeAnswerAudioRecordings = new Map();
+const pendingAnswerAudioUploads = new Map();
+const activeSpeechRecognitions = new Map();
+
 function createAudioUiState() {
   return {
     isPlaying: false,
@@ -222,6 +237,169 @@ function ensureAudioUi(questionId) {
     state.audioUi[questionId] = createAudioUiState();
   }
   return state.audioUi[questionId];
+}
+
+function isMicrophoneQuestionType(type) {
+  return MICROPHONE_QUESTION_TYPES.has(String(type || ''));
+}
+
+function pickAnswerAudioMimeType() {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+    return '';
+  }
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4'
+  ];
+  return candidates.find((item) => MediaRecorder.isTypeSupported(item)) || '';
+}
+
+async function startAnswerAudioRecording(questionId, questionType) {
+  if (!isMicrophoneQuestionType(questionType) || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    const mimeType = pickAnswerAudioMimeType();
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    const chunks = [];
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
+    const analyser = audioContext ? audioContext.createAnalyser() : null;
+    const source = audioContext ? audioContext.createMediaStreamSource(stream) : null;
+    const levelBuffer = analyser ? new Float32Array(analyser.fftSize) : null;
+    let maxLevel = 0;
+    let levelFrameId = 0;
+
+    if (source && analyser && levelBuffer) {
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.2;
+      source.connect(analyser);
+      const sampleLevel = () => {
+        analyser.getFloatTimeDomainData(levelBuffer);
+        let framePeak = 0;
+        for (let index = 0; index < levelBuffer.length; index += 1) {
+          framePeak = Math.max(framePeak, Math.abs(levelBuffer[index]));
+        }
+        maxLevel = Math.max(maxLevel, framePeak);
+        levelFrameId = window.requestAnimationFrame(sampleLevel);
+      };
+      audioContext.resume?.();
+      sampleLevel();
+    }
+
+    const finished = new Promise((resolve) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      recorder.onerror = () => {
+        if (levelFrameId) {
+          window.cancelAnimationFrame(levelFrameId);
+        }
+        source?.disconnect?.();
+        analyser?.disconnect?.();
+        audioContext?.close?.();
+        stream.getTracks().forEach((track) => track.stop());
+        resolve(null);
+      };
+      recorder.onstop = () => {
+        if (levelFrameId) {
+          window.cancelAnimationFrame(levelFrameId);
+        }
+        source?.disconnect?.();
+        analyser?.disconnect?.();
+        audioContext?.close?.();
+        const blobType = recorder.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(chunks, { type: blobType });
+        stream.getTracks().forEach((track) => track.stop());
+        resolve(blob.size > 0 ? { blob, audioMimeType: blobType, maxLevel } : null);
+      };
+    });
+
+    recorder.start();
+    activeAnswerAudioRecordings.set(questionId, { recorder, finished });
+    return true;
+  } catch (error) {
+    return null;
+  }
+}
+
+function stopAnswerAudioRecording(questionId) {
+  const activeRecording = activeAnswerAudioRecordings.get(questionId);
+  if (!activeRecording) {
+    return Promise.resolve(null);
+  }
+
+  activeAnswerAudioRecordings.delete(questionId);
+  if (activeRecording.recorder.state !== 'inactive') {
+    activeRecording.recorder.stop();
+  }
+  return activeRecording.finished;
+}
+
+function trackAnswerAudioUpload(questionId, promise) {
+  pendingAnswerAudioUploads.set(questionId, promise);
+  promise.finally(() => {
+    if (pendingAnswerAudioUploads.get(questionId) === promise) {
+      pendingAnswerAudioUploads.delete(questionId);
+    }
+  });
+  return promise;
+}
+
+function stopSpeechRecognition(questionId) {
+  const recognition = activeSpeechRecognitions.get(questionId);
+  if (!recognition) {
+    return false;
+  }
+  activeSpeechRecognitions.delete(questionId);
+  recognition.__manualStop = true;
+  recognition.stop();
+  return true;
+}
+
+async function uploadAnswerAudioForQuestion(questionId, questionType) {
+  const recording = await stopAnswerAudioRecording(questionId);
+  if (!recording?.blob) {
+    return null;
+  }
+
+  if (Number(recording.maxLevel || 0) < 0.01) {
+    window.alert('没有采集到麦克风声音，请重新录音并确认麦克风输入正常。');
+    return null;
+  }
+
+  try {
+    const uploaded = await uploadAnswerAudio(recording.blob, { questionId, questionType });
+    const answer = ensureAnswer(questionId);
+    answer.audioPath = uploaded.audioPath || '';
+    answer.audioUrl = uploaded.audioUrl || '';
+    answer.audioMimeType = uploaded.audioMimeType || recording.audioMimeType || recording.blob.type || '';
+    return uploaded;
+  } catch (error) {
+    window.alert('录音已完成，但录音文件保存失败，本次仅保留识别文本。');
+    return null;
+  }
+}
+
+async function flushPendingAnswerAudioUploads() {
+  const pending = Array.from(pendingAnswerAudioUploads.values());
+  if (!pending.length) {
+    return;
+  }
+  await Promise.allSettled(pending);
 }
 
 function getSavePayload(editingPaper) {
@@ -606,6 +784,9 @@ export function useExamStore() {
     async preparePaperSession(shareCode) {
       state.loading = true;
       try {
+        activeSpeechRecognitions.clear();
+        activeAnswerAudioRecordings.clear();
+        pendingAnswerAudioUploads.clear();
         const normalizedShareCode = normalizeShareCode(shareCode);
         const rawPaper = await fetchPublicPaperByShareCode(normalizedShareCode);
         state.currentPaperId = rawPaper.id;
@@ -649,6 +830,9 @@ export function useExamStore() {
         window.speechSynthesis.cancel();
         void loadSpeechVoices(window.speechSynthesis);
       }
+      activeSpeechRecognitions.clear();
+      activeAnswerAudioRecordings.clear();
+      pendingAnswerAudioUploads.clear();
       state.sessionStarted = true;
       state.currentIndex = 0;
       state.answers = {};
@@ -669,6 +853,7 @@ export function useExamStore() {
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
+        stopSpeechRecognition(getCurrentQuestion()?.id);
         stopSpeakingVisuals();
         state.currentIndex -= 1;
         state.waveBars = buildWaveBars();
@@ -684,6 +869,8 @@ export function useExamStore() {
         state.waveBars = buildWaveBars();
         return false;
       }
+
+      await flushPendingAnswerAudioUploads();
 
       const details = buildRecordItems(state.currentPaper, state.answers);
       const abilityMap = buildWeightedAbilityMap(details);
@@ -856,17 +1043,27 @@ export function useExamStore() {
       answer.autoScore = 100;
       flashScored(questionId);
     },
-    runSpeechRecognition(questionId, targetText) {
+    async runSpeechRecognition(questionId, targetText) {
+      const audioUi = ensureAudioUi(questionId);
+      if (audioUi.isRecording) {
+        stopSpeechRecognition(questionId);
+        void trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, state.currentPaper.questions.find((item) => item.id === questionId)?.type || ''));
+        audioUi.isRecording = false;
+        return;
+      }
       const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!Recognition) {
-        window.alert('当前浏览器不支持语音识别，已为你保留演示评分按钮。');
+        window.alert('当前浏览器不支持语音识别，请更换浏览器后再试。');
         return;
       }
       stopSpeakingVisuals();
-      const audioUi = ensureAudioUi(questionId);
       audioUi.isRecording = true;
       audioUi.justScored = false;
+      const question = state.currentPaper.questions.find((item) => item.id === questionId);
+      await startAnswerAudioRecording(questionId, question?.type || '');
       const recognition = new Recognition();
+      recognition.__manualStop = false;
+      activeSpeechRecognitions.set(questionId, recognition);
       recognition.lang = 'en-US';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
@@ -880,11 +1077,15 @@ export function useExamStore() {
         flashScored(questionId);
       };
       recognition.onerror = () => {
+        activeSpeechRecognitions.delete(questionId);
         ensureAudioUi(questionId).isRecording = false;
+        trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
         window.alert('语音识别失败，请重试或使用演示评分。');
       };
       recognition.onend = () => {
+        activeSpeechRecognitions.delete(questionId);
         ensureAudioUi(questionId).isRecording = false;
+        trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
       };
       recognition.start();
     },
@@ -909,6 +1110,7 @@ export function useExamStore() {
       };
       const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
       const playbackPlan = createSpeechPlaybackPlan(voices);
+      const playbackTuning = getSpeechPlaybackTuning(questionId ? payload?.kind || 'listening' : 'listening');
       let attemptId = 0;
       let started = false;
       let fallbackKickoffTimer = null;
@@ -924,8 +1126,8 @@ export function useExamStore() {
         attemptId += 1;
         const currentAttempt = attemptId;
         const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 0.82;
-        utter.pitch = 1.05;
+        utter.rate = playbackTuning.rate;
+        utter.pitch = playbackTuning.pitch;
         if (settings.lang) {
           utter.lang = settings.lang;
         }
@@ -1014,6 +1216,9 @@ export function useExamStore() {
       if (!config) {
         return false;
       }
+      activeSpeechRecognitions.clear();
+      activeAnswerAudioRecordings.clear();
+      pendingAnswerAudioUploads.clear();
       const normalizedPaper = {
         ...config,
         rewardConfig: normalizeRewardConfig(config.rewardConfig || {}),
@@ -1040,6 +1245,9 @@ export function useExamStore() {
       storeApi.beginPaperSession();
     },
     restartExam() {
+      activeSpeechRecognitions.clear();
+      activeAnswerAudioRecordings.clear();
+      pendingAnswerAudioUploads.clear();
       state.answers = {};
       state.audioUi = {};
       state.currentIndex = 0;

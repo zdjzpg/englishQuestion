@@ -135,6 +135,29 @@ export function createSubmission(paperId, payload) {
   });
 }
 
+export async function uploadAnswerAudio(blob, { questionId = '', questionType = '' } = {}) {
+  const token = getStoredAuthToken();
+  const search = new URLSearchParams();
+  if (questionId) search.set('questionId', questionId);
+  if (questionType) search.set('questionType', questionType);
+  const suffix = search.toString() ? `?${search.toString()}` : '';
+  const response = await fetch(`${API_BASE}/uploads/answer-audio${suffix}`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': blob?.type || 'application/octet-stream'
+    },
+    body: blob
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || `Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export function drawSubmissionReward(submissionId) {
   return request(`/submissions/${submissionId}/reward-draw`, {
     method: 'POST'

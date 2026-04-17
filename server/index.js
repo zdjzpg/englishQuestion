@@ -2,6 +2,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const {
   listPapers,
   getPaperById,
@@ -24,12 +25,14 @@ const {
 } = require('./userRepository');
 const { getPool } = require('./db');
 const { ensureSchema } = require('./schema');
+const { saveAnswerAudio } = require('./uploadRepository');
 
 const app = express();
 const port = Number(process.env.API_PORT || 3001);
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
+app.use('/api/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 function getBearerToken(req) {
   const authHeader = req.headers.authorization || '';
@@ -286,6 +289,20 @@ app.get('/api/papers/:paperId/submissions', requireAuth, async (req, res) => {
       req.authUser
     );
     res.json({ items });
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+app.post('/api/uploads/answer-audio', express.raw({ type: '*/*', limit: '25mb' }), async (req, res) => {
+  try {
+    const result = await saveAnswerAudio({
+      buffer: req.body,
+      mimeType: req.headers['content-type'] || '',
+      questionId: req.query.questionId || '',
+      questionType: req.query.questionType || ''
+    });
+    res.status(201).json(result);
   } catch (error) {
     handleError(res, error);
   }
