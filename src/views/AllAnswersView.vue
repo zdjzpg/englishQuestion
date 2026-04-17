@@ -229,9 +229,14 @@ function handleRowExpand(expanded, record) {
 }
 
 function renderStudentAnswer(record) {
-  const nodes = [
-    h('div', { class: 'admin-answer-text' }, record.studentText || '未作答')
-  ];
+  const nodes = [];
+  const shouldShowStudentText = record.studentText !== '未识别' || !record.audioUrl;
+
+  if (shouldShowStudentText) {
+    nodes.push(
+      h('div', { class: 'admin-answer-text' }, record.studentText || '未作答')
+    );
+  }
 
   if (record.audioUrl) {
     nodes.push(

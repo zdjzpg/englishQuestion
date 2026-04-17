@@ -3,7 +3,7 @@
     <section class="admin-kpis">
       <article class="admin-kpi">
         <span class="admin-kpi-label">卷子总数</span>
-        <strong class="admin-kpi-value">{{ configuredPapers.length }}</strong>
+        <strong class="admin-kpi-value">{{ totalPapers }}</strong>
       </article>
       <article class="admin-kpi">
         <span class="admin-kpi-label">当前可见</span>
@@ -21,7 +21,7 @@
           <h2>卷子检索</h2>
         </div>
         <a-space>
-          <a-button @click="refreshPapers">刷新列表</a-button>
+          <a-button @click="refreshPapers()">刷新列表</a-button>
           <a-button type="primary" @click="createPaper">新建卷子</a-button>
         </a-space>
       </div>
@@ -32,7 +32,7 @@
           <a-input
             v-model:value="keyword"
             placeholder="输入卷子名称关键词"
-            @pressEnter="refreshPapers"
+            @pressEnter="handleKeywordSearch"
           />
         </div>
         <div class="field">
@@ -42,6 +42,7 @@
             :options="typeOptions"
             placeholder="全部题型"
             allow-clear
+            @change="handleTypeChange"
           />
         </div>
       </div>
@@ -59,10 +60,11 @@
         class="admin-ant-table"
         :columns="columns"
         :data-source="filteredPapers"
-        :pagination="false"
+        :pagination="tablePagination"
         :row-key="(record) => record.id"
         :custom-row="customRow"
         :scroll="{ x: tableScrollX }"
+        @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'examTitle'">
@@ -153,6 +155,7 @@ const router = useRouter();
 const {
   TYPE_META,
   configuredPapers,
+  paperPagination,
   createNewPaper,
   copyPaper,
   fetchPapers,
@@ -162,16 +165,18 @@ const {
 } = useExamStore();
 const keyword = ref("");
 const selectedType = ref(undefined);
-const viewportWidth = ref(typeof window === 'undefined' ? 1600 : window.innerWidth);
+const viewportWidth = ref(
+  typeof window === "undefined" ? 1600 : window.innerWidth,
+);
 
 const filteredPapers = computed(() => configuredPapers.value);
+const totalPapers = computed(() => Number(paperPagination.value.total || 0));
 const totalSubmissions = computed(() =>
   configuredPapers.value.reduce(
     (sum, paper) => sum + Number(paper.submissionCount || 0),
     0,
   ),
 );
-const isCompactTableViewport = computed(() => viewportWidth.value < 1480);
 const typeOptions = computed(() => [
   { label: "全部题型", value: "" },
   ...Object.entries(TYPE_META).map(([value, meta]) => ({
@@ -192,7 +197,7 @@ const columns = computed(() => {
       key: "actions",
       width: 300,
       align: "right",
-      fixed: isCompactTableViewport.value ? undefined : 'right',
+      fixed: "right",
     },
   ];
 
@@ -210,14 +215,22 @@ const columns = computed(() => {
 const tableScrollX = computed(() =>
   columns.value.reduce((sum, column) => sum + Number(column.width || 0), 0),
 );
+const tablePagination = computed(() => ({
+  current: Number(paperPagination.value.page || 1),
+  pageSize: Number(paperPagination.value.pageSize || 10),
+  total: Number(paperPagination.value.total || 0),
+  showSizeChanger: false,
+  hideOnSinglePage: false,
+  showTotal: (total) => `共 ${total} 条`,
+}));
 
 onMounted(async () => {
-  window.addEventListener('resize', handleViewportResize);
-  await refreshPapers();
+  window.addEventListener("resize", handleViewportResize);
+  await refreshPapers(1);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleViewportResize);
+  window.removeEventListener("resize", handleViewportResize);
 });
 
 function createPaper() {
@@ -295,11 +308,31 @@ function handleMoreAction(actionKey, paper) {
   }
 }
 
-async function refreshPapers() {
+async function refreshPapers(page = paperPagination.value.page, pageSize = paperPagination.value.pageSize) {
+  const nextKeyword = keyword.value.trim();
+  const nextQuestionType = selectedType.value || "";
+  const filtersChanged =
+    nextKeyword !== (state.paperFilters?.keyword || "") ||
+    nextQuestionType !== (state.paperFilters?.questionType || "");
+
   await fetchPapers({
-    keyword: keyword.value.trim(),
-    questionType: selectedType.value || "",
+    keyword: nextKeyword,
+    questionType: nextQuestionType,
+    page: filtersChanged ? 1 : page,
+    pageSize,
   });
+}
+
+async function handleKeywordSearch() {
+  await refreshPapers(1);
+}
+
+async function handleTypeChange() {
+  await refreshPapers(1);
+}
+
+async function handleTableChange(pagination) {
+  await refreshPapers(pagination.current, pagination.pageSize);
 }
 
 function customRow(record) {

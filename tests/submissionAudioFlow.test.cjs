@@ -18,8 +18,11 @@ test('exam store captures microphone audio and uploads it before final submissio
   const source = read('src/store/examStore.js');
 
   assert.match(source, /MediaRecorder/);
+  assert.match(source, /prewarmAnswerAudioRecorder/);
   assert.match(source, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(source, /await startAnswerAudioRecording/);
+  assert.match(source, /isPreparingMic/);
+  assert.match(source, /audioUi\.isRecording = true/);
   assert.match(source, /AudioContext|webkitAudioContext/);
   assert.match(source, /maxLevel/);
   assert.match(source, /showStudentNotice\(/);

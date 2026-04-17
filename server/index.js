@@ -186,9 +186,11 @@ app.get('/api/papers', requireAuth, async (req, res) => {
     const papers = await listPapers({
       keyword: req.query.keyword || '',
       questionType: req.query.questionType || '',
+      page: req.query.page,
+      pageSize: req.query.pageSize,
       authUser: req.authUser
     });
-    res.json({ items: papers });
+    res.json(papers);
   } catch (error) {
     handleError(res, error);
   }

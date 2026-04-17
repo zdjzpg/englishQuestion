@@ -144,6 +144,17 @@ function applyOwnerScope({ authUser, alias = 'p' }) {
   };
 }
 
+function normalizePaperListPagination({ page = 1, pageSize = 10 } = {}) {
+  const parsedPage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const parsedPageSize = Math.max(1, Number.parseInt(pageSize, 10) || 10);
+  const safePageSize = Math.min(parsedPageSize, 100);
+  return {
+    page: parsedPage,
+    pageSize: safePageSize,
+    offset: (parsedPage - 1) * safePageSize
+  };
+}
+
 async function ensurePaperAccess(connection, paperId, authUser) {
   const [[paper]] = await connection.query('SELECT id, owner_user_id FROM papers WHERE id = ?', [paperId]);
   if (!paper) {
@@ -309,11 +320,12 @@ function normalizeQuestionPayload(question, index) {
   };
 }
 
-async function listPapers({ keyword = '', questionType = '', authUser } = {}) {
+async function listPapers({ keyword = '', questionType = '', authUser, page = 1, pageSize = 10 } = {}) {
   const pool = getPool();
   const conditions = ['1 = 1'];
   const params = [];
   const ownerScope = applyOwnerScope({ authUser, alias: 'p' });
+  const pagination = normalizePaperListPagination({ page, pageSize });
 
   if (keyword) {
     conditions.push('p.title LIKE ?');
@@ -334,6 +346,15 @@ async function listPapers({ keyword = '', questionType = '', authUser } = {}) {
     conditions.push(ownerScope.clause.replace(/^ AND /, ''));
     params.push(...ownerScope.params);
   }
+
+  const [[countRow]] = await pool.query(
+    `
+      SELECT COUNT(DISTINCT p.id) AS total
+      FROM papers p
+      WHERE ${conditions.join(' AND ')}
+    `,
+    params
+  );
 
   const [rows] = await pool.query(
     `
@@ -367,23 +388,29 @@ async function listPapers({ keyword = '', questionType = '', authUser } = {}) {
         p.share_code,
         u.username
       ORDER BY p.updated_at DESC
+      LIMIT ? OFFSET ?
     `,
-    params
+    [...params, pagination.pageSize, pagination.offset]
   );
 
-  return rows.map((row) => ({
-    id: String(row.id),
-    examTitle: row.title,
-    themeNote: row.theme_note || '',
-    welcomeSpeech: row.welcome_speech || '',
-    questionCount: Number(row.question_count),
-    totalScore: Number(row.total_score),
-    updatedAt: row.updated_at,
-    submissionCount: Number(row.submission_count),
-    ownerUserId: row.owner_user_id ? String(row.owner_user_id) : '',
-    ownerUsername: row.owner_username || '',
-    shareCode: row.share_code || ''
-  }));
+  return {
+    items: rows.map((row) => ({
+      id: String(row.id),
+      examTitle: row.title,
+      themeNote: row.theme_note || '',
+      welcomeSpeech: row.welcome_speech || '',
+      questionCount: Number(row.question_count),
+      totalScore: Number(row.total_score),
+      updatedAt: row.updated_at,
+      submissionCount: Number(row.submission_count),
+      ownerUserId: row.owner_user_id ? String(row.owner_user_id) : '',
+      ownerUsername: row.owner_username || '',
+      shareCode: row.share_code || ''
+    })),
+    total: Number(countRow?.total || 0),
+    page: pagination.page,
+    pageSize: pagination.pageSize
+  };
 }
 
 async function getPaperById(paperId) {

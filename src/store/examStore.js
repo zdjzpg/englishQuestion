@@ -154,6 +154,11 @@ const state = reactive({
   authUser: null,
   authReady: false,
   papers: [],
+  paperFilters: {
+    keyword: '',
+    questionType: ''
+  },
+  paperPagination: { page: 1, pageSize: 10, total: 0 },
   users: [],
   submissions: [],
   editingPaperId: null,
@@ -247,12 +252,15 @@ const MICROPHONE_QUESTION_TYPES = new Set([
 const activeAnswerAudioRecordings = new Map();
 const pendingAnswerAudioUploads = new Map();
 const activeSpeechRecognitions = new Map();
+const preparedAnswerAudioInputs = new Map();
 
 function createAudioUiState() {
   return {
     isPlaying: false,
     isRecording: false,
-    justScored: false
+    justScored: false,
+    isPreparingMic: false,
+    isMicReady: false
   };
 }
 
@@ -283,20 +291,121 @@ function pickAnswerAudioMimeType() {
   return candidates.find((item) => MediaRecorder.isTypeSupported(item)) || '';
 }
 
+function getAnswerAudioConstraints() {
+  return {
+    audio: {
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    }
+  };
+}
+
+function stopMediaStream(stream) {
+  stream?.getTracks?.().forEach((track) => track.stop());
+}
+
+function clearPreparedAnswerAudio(questionId) {
+  if (!questionId) {
+    return;
+  }
+  const prepared = preparedAnswerAudioInputs.get(questionId);
+  preparedAnswerAudioInputs.delete(questionId);
+  stopMediaStream(prepared?.stream);
+  const audioUi = ensureAudioUi(questionId);
+  audioUi.isPreparingMic = false;
+  audioUi.isMicReady = false;
+}
+
+function clearAllPreparedAnswerAudio() {
+  Array.from(preparedAnswerAudioInputs.keys()).forEach((questionId) => {
+    clearPreparedAnswerAudio(questionId);
+  });
+}
+
+async function ensureAnswerAudioInput(questionId, questionType, { markPreparing = false } = {}) {
+  if (!isMicrophoneQuestionType(questionType) || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    return null;
+  }
+
+  const audioUi = ensureAudioUi(questionId);
+  const existing = preparedAnswerAudioInputs.get(questionId);
+  if (existing?.stream) {
+    audioUi.isPreparingMic = false;
+    audioUi.isMicReady = true;
+    return existing.stream;
+  }
+
+  if (markPreparing) {
+    audioUi.isPreparingMic = true;
+    audioUi.isMicReady = false;
+  }
+
+  if (existing?.promise) {
+    return existing.promise;
+  }
+
+  const promise = navigator.mediaDevices.getUserMedia(getAnswerAudioConstraints())
+    .then((stream) => {
+      preparedAnswerAudioInputs.set(questionId, { stream });
+      audioUi.isPreparingMic = false;
+      audioUi.isMicReady = true;
+      return stream;
+    })
+    .catch(() => {
+      preparedAnswerAudioInputs.delete(questionId);
+      audioUi.isPreparingMic = false;
+      audioUi.isMicReady = false;
+      return null;
+    });
+
+  preparedAnswerAudioInputs.set(questionId, { promise });
+  return promise;
+}
+
+function prewarmAnswerAudioRecorder(questionId, questionType) {
+  return ensureAnswerAudioInput(questionId, questionType, { markPreparing: true });
+}
+
+function syncPreparedMicrophoneWithCurrentQuestion() {
+  const currentQuestion = getCurrentQuestion();
+  const currentQuestionId = currentQuestion?.id || '';
+
+  Array.from(preparedAnswerAudioInputs.keys()).forEach((questionId) => {
+    if (questionId !== currentQuestionId) {
+      clearPreparedAnswerAudio(questionId);
+    }
+  });
+
+  Object.keys(state.audioUi).forEach((questionId) => {
+    if (questionId !== currentQuestionId) {
+      state.audioUi[questionId].isPreparingMic = false;
+      state.audioUi[questionId].isMicReady = false;
+    }
+  });
+
+  if (!state.sessionStarted || !currentQuestion || !isMicrophoneQuestionType(currentQuestion.type)) {
+    return;
+  }
+
+  void prewarmAnswerAudioRecorder(currentQuestion.id, currentQuestion.type);
+}
+
 async function startAnswerAudioRecording(questionId, questionType) {
   if (!isMicrophoneQuestionType(questionType) || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
     return null;
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
+    const audioUi = ensureAudioUi(questionId);
+    const stream = await ensureAnswerAudioInput(questionId, questionType);
+    if (!stream) {
+      return null;
+    }
+    preparedAnswerAudioInputs.delete(questionId);
+    audioUi.isPreparingMic = false;
+    audioUi.isMicReady = false;
     const mimeType = pickAnswerAudioMimeType();
     const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
     const chunks = [];
@@ -338,7 +447,7 @@ async function startAnswerAudioRecording(questionId, questionType) {
         source?.disconnect?.();
         analyser?.disconnect?.();
         audioContext?.close?.();
-        stream.getTracks().forEach((track) => track.stop());
+        stopMediaStream(stream);
         resolve(null);
       };
       recorder.onstop = () => {
@@ -350,7 +459,7 @@ async function startAnswerAudioRecording(questionId, questionType) {
         audioContext?.close?.();
         const blobType = recorder.mimeType || mimeType || 'audio/webm';
         const blob = new Blob(chunks, { type: blobType });
-        stream.getTracks().forEach((track) => track.stop());
+        stopMediaStream(stream);
         resolve(blob.size > 0 ? { blob, audioMimeType: blobType, maxLevel } : null);
       };
     });
@@ -500,6 +609,7 @@ export function useExamStore() {
     questionCount: paper.questions?.length || paper.questionCount || 0,
     totalScore: Number(paper.totalScore || getTotalScore(paper.questions || []))
   })));
+  const paperPagination = computed(() => state.paperPagination);
   const paperTypeOptions = computed(() => {
     const set = new Set();
     state.papers.forEach((paper) => {
@@ -521,11 +631,30 @@ export function useExamStore() {
   const isAdmin = computed(() => state.authUser?.role === 'ADMIN');
   const missingStudentFields = computed(() => getMissingStudentFields(state.student));
 
+  function buildPaperFetchParams(filters = {}) {
+    return {
+      keyword: typeof filters.keyword === 'string' ? filters.keyword : state.paperFilters.keyword,
+      questionType: typeof filters.questionType === 'string' ? filters.questionType : state.paperFilters.questionType,
+      page: Number(filters.page || state.paperPagination.page || 1),
+      pageSize: Number(filters.pageSize || state.paperPagination.pageSize || 10)
+    };
+  }
+
   async function fetchPapers(filters = {}) {
     state.loading = true;
     try {
-      const result = await apiFetchPapers(filters);
+      const params = buildPaperFetchParams(filters);
+      const result = await apiFetchPapers(params);
       state.papers = result.items || [];
+      state.paperFilters = {
+        keyword: params.keyword || '',
+        questionType: params.questionType || ''
+      };
+      state.paperPagination = {
+        page: Number(result.page || params.page || state.paperPagination.page || 1),
+        pageSize: Number(result.pageSize || params.pageSize || state.paperPagination.pageSize || 10),
+        total: Number(result.total || 0)
+      };
       setError(null);
     } catch (error) {
       setError(error);
@@ -597,6 +726,7 @@ export function useExamStore() {
     progressPercent,
     recordItems,
     configuredPapers,
+    paperPagination,
     paperTypeOptions,
     submissionsByPaper,
     isAuthenticated,
@@ -785,7 +915,10 @@ export function useExamStore() {
       state.loading = true;
       try {
         await removePaperById(paperId);
-        await fetchPapers();
+        const shouldFallbackPage = state.papers.length === 1 && Number(state.paperPagination.page || 1) > 1;
+        await fetchPapers({
+          page: shouldFallbackPage ? Number(state.paperPagination.page || 1) - 1 : state.paperPagination.page
+        });
         if (state.currentPaperId === paperId) {
           state.currentPaperId = null;
           state.currentPaperShareCode = '';
@@ -831,6 +964,7 @@ export function useExamStore() {
         activeSpeechRecognitions.clear();
         activeAnswerAudioRecordings.clear();
         pendingAnswerAudioUploads.clear();
+        clearAllPreparedAnswerAudio();
         const normalizedShareCode = normalizeShareCode(shareCode);
         const rawPaper = await fetchPublicPaperByShareCode(normalizedShareCode);
         state.currentPaperId = rawPaper.id;
@@ -879,6 +1013,7 @@ export function useExamStore() {
       activeSpeechRecognitions.clear();
       activeAnswerAudioRecordings.clear();
       pendingAnswerAudioUploads.clear();
+      clearAllPreparedAnswerAudio();
       state.sessionStarted = true;
       state.currentIndex = 0;
       state.answers = {};
@@ -895,6 +1030,7 @@ export function useExamStore() {
       state.playbackOverlay.visible = false;
       state.waveBars = buildWaveBars();
       syncLegacyCurrentPaper();
+      syncPreparedMicrophoneWithCurrentQuestion();
     },
     previousQuestion() {
       if (state.currentIndex > 0) {
@@ -905,6 +1041,7 @@ export function useExamStore() {
         stopSpeakingVisuals();
         state.currentIndex -= 1;
         state.waveBars = buildWaveBars();
+        syncPreparedMicrophoneWithCurrentQuestion();
       }
     },
     async nextQuestion() {
@@ -915,6 +1052,7 @@ export function useExamStore() {
         stopSpeakingVisuals();
         state.currentIndex += 1;
         state.waveBars = buildWaveBars();
+        syncPreparedMicrophoneWithCurrentQuestion();
         return false;
       }
 
@@ -1104,6 +1242,8 @@ export function useExamStore() {
         stopSpeechRecognition(questionId);
         void trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
         audioUi.isRecording = false;
+        audioUi.isPreparingMic = false;
+        audioUi.isMicReady = false;
         return;
       }
       const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1112,9 +1252,10 @@ export function useExamStore() {
         return;
       }
       stopSpeakingVisuals();
-      audioUi.isRecording = true;
       audioUi.justScored = false;
+      audioUi.isPreparingMic = true;
       await startAnswerAudioRecording(questionId, question?.type || '');
+      audioUi.isPreparingMic = false;
       const recognition = new Recognition();
       recognition.__manualStop = false;
       activeSpeechRecognitions.set(questionId, recognition);
@@ -1134,14 +1275,17 @@ export function useExamStore() {
         activeSpeechRecognitions.delete(questionId);
         ensureAudioUi(questionId).isRecording = false;
         trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
+        void prewarmAnswerAudioRecorder(questionId, question?.type || '');
         applySpeechRecognitionFallback(questionId, targetText, question);
       };
       recognition.onend = () => {
         activeSpeechRecognitions.delete(questionId);
         ensureAudioUi(questionId).isRecording = false;
         trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
+        void prewarmAnswerAudioRecorder(questionId, question?.type || '');
       };
       recognition.start();
+      audioUi.isRecording = true;
     },
     speak(payload) {
       const { text, questionId } = normalizeSpeakPayload(payload);
@@ -1273,6 +1417,7 @@ export function useExamStore() {
       activeSpeechRecognitions.clear();
       activeAnswerAudioRecordings.clear();
       pendingAnswerAudioUploads.clear();
+      clearAllPreparedAnswerAudio();
       const normalizedPaper = {
         ...config,
         rewardConfig: normalizeRewardConfig(config.rewardConfig || {}),
@@ -1304,6 +1449,7 @@ export function useExamStore() {
       activeSpeechRecognitions.clear();
       activeAnswerAudioRecordings.clear();
       pendingAnswerAudioUploads.clear();
+      clearAllPreparedAnswerAudio();
       state.answers = {};
       state.audioUi = {};
       state.currentIndex = 0;

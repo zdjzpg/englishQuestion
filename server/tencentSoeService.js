@@ -97,6 +97,20 @@ function normalizeSoeSuggestedScore(response = {}) {
   return clampScore(score);
 }
 
+function relaxReadAloudScore(score) {
+  const normalized = clampScore(score);
+
+  if (normalized >= 90) {
+    return normalized;
+  }
+
+  if (normalized <= 60) {
+    return clampScore(normalized + 10 + (60 - normalized) * 0.15);
+  }
+
+  return clampScore(normalized + (90 - normalized) * 0.2);
+}
+
 function parseScoreCoeff(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -434,9 +448,11 @@ async function scoreReadAloudAnswer({ audioPath = '', refText = '' } = {}) {
       sentenceInfoEnabled: config.sentenceInfoEnabled,
       timeoutMs: config.timeoutMs
     });
+    const sourceRawScore = normalizeSoeSuggestedScore(response);
 
     return {
-      rawScore: normalizeSoeSuggestedScore(response),
+      rawScore: relaxReadAloudScore(sourceRawScore),
+      sourceRawScore,
       fallbackUsed: false,
       response
     };
@@ -454,6 +470,7 @@ module.exports = {
   getSoeConfig,
   normalizeSoeSuggestedScore,
   parseSoeResultPayload,
+  relaxReadAloudScore,
   requestSoeScoreOverWebSocket,
   scoreReadAloudAnswer
 };

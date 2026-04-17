@@ -38,6 +38,18 @@ test('normalizeSoeSuggestedScore prefers Tencent suggested score and clamps the 
   );
 });
 
+test('relaxReadAloudScore softens low and mid-range Tencent scores', () => {
+  assert.equal(typeof tencentSoeService?.relaxReadAloudScore, 'function');
+
+  assert.equal(tencentSoeService.relaxReadAloudScore(0), 19);
+  assert.equal(tencentSoeService.relaxReadAloudScore(30), 45);
+  assert.equal(tencentSoeService.relaxReadAloudScore(45), 57);
+  assert.equal(tencentSoeService.relaxReadAloudScore(60), 70);
+  assert.equal(tencentSoeService.relaxReadAloudScore(75), 78);
+  assert.equal(tencentSoeService.relaxReadAloudScore(89), 89);
+  assert.equal(tencentSoeService.relaxReadAloudScore(95), 95);
+});
+
 test('buildSoeRequestParams chooses eval mode from the reference text', () => {
   assert.equal(typeof tencentSoeService?.buildSoeRequestParams, 'function');
 

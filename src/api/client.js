@@ -86,6 +86,8 @@ export function fetchPapers(params = {}) {
   const search = new URLSearchParams();
   if (params.keyword) search.set('keyword', params.keyword);
   if (params.questionType) search.set('questionType', params.questionType);
+  if (params.page) search.set('page', String(params.page));
+  if (params.pageSize) search.set('pageSize', String(params.pageSize));
   const suffix = search.toString() ? `?${search.toString()}` : '';
   return request(`/papers${suffix}`);
 }
