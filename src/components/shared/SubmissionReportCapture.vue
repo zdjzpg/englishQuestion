@@ -66,8 +66,7 @@ const reportAbilityItems = computed(() => {
 .submission-report-capture .kpi-value,
 .submission-report-capture .card-title,
 .submission-report-capture .muted,
-.submission-report-capture .tag,
-.submission-report-capture :deep(text) {
+.submission-report-capture .tag {
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
 }
 </style>

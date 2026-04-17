@@ -342,8 +342,11 @@ function customRow(record) {
 }
 
 function paperTypeText(paper) {
-  const labels = (paper.questions || [])
-    .map((question) => TYPE_META[question.type]?.label || question.type)
+  const rawTypes = Array.isArray(paper.questionTypes) && paper.questionTypes.length
+    ? paper.questionTypes
+    : (paper.questions || []).map((question) => question.type);
+  const labels = rawTypes
+    .map((type) => TYPE_META[type]?.label || type)
     .filter(Boolean);
   return labels.length ? labels.join(" / ") : "未配置题型";
 }

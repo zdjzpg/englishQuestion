@@ -306,6 +306,32 @@ function stopMediaStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
+function playRecordingStartCue() {
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) {
+    return;
+  }
+
+  const audioContext = new AudioContextCtor();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  oscillator.type = 'sine';
+  oscillator.frequency.value = 880;
+  gainNode.gain.value = 0.0001;
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  const now = audioContext.currentTime;
+  gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+  oscillator.start(now);
+  oscillator.stop(now + 0.18);
+  oscillator.onended = () => {
+    oscillator.disconnect();
+    gainNode.disconnect();
+    audioContext.close?.();
+  };
+}
+
 function clearPreparedAnswerAudio(questionId) {
   if (!questionId) {
     return;
@@ -569,6 +595,7 @@ function setAuthSession({ token, user }) {
 const audioScoreTimers = new Map();
 let activeSpeechToken = 0;
 let playbackFallbackTimer = null;
+let activePlaybackAudio = null;
 
 let storeApi;
 
@@ -669,11 +696,28 @@ export function useExamStore() {
     state.users = result.items || [];
   }
 
+  function stopActivePlaybackAudio() {
+    if (!activePlaybackAudio) {
+      return;
+    }
+    try {
+      activePlaybackAudio.pause();
+      activePlaybackAudio.src = '';
+    } catch (error) {
+      // Ignore cleanup failures from abandoned audio elements.
+    }
+    activePlaybackAudio = null;
+  }
+
   function stopSpeakingVisuals() {
     if (playbackFallbackTimer) {
       window.clearTimeout(playbackFallbackTimer);
       playbackFallbackTimer = null;
     }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    stopActivePlaybackAudio();
     Object.keys(state.audioUi).forEach((questionId) => {
       ensureAudioUi(questionId).isPlaying = false;
     });
@@ -710,6 +754,139 @@ export function useExamStore() {
       questionId: payload?.questionId || '',
       kind: payload?.kind || 'listening'
     };
+  }
+
+  function buildTtsAudioUrl(text) {
+    const search = new URLSearchParams({ text: String(text || '') });
+    return `/api/tts?${search.toString()}`;
+  }
+
+  function getTtsPlaybackRate(kind = 'listening') {
+    if (kind === 'demo_playing') {
+      return 0.96;
+    }
+    return 1;
+  }
+
+  function playWithBrowserSpeechFallback({ text, kind = 'listening', speechToken }) {
+    if (!window.speechSynthesis) {
+      stopSpeakingVisuals();
+      return;
+    }
+
+    const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+    const playbackPlan = createSpeechPlaybackPlan(voices);
+    const playbackTuning = getSpeechPlaybackTuning(kind);
+    let attemptId = 0;
+    let started = false;
+    let fallbackKickoffTimer = null;
+    const safeTextLength = Math.max(1, String(text || '').length);
+    const fallbackDuration = Math.max(2200, Math.min(9000, safeTextLength * 240 + 1800));
+    playbackFallbackTimer = window.setTimeout(() => {
+      if (speechToken === activeSpeechToken) {
+        stopSpeakingVisuals();
+      }
+    }, fallbackDuration);
+
+    const speakWithSettings = (settings, isFallback = false) => {
+      attemptId += 1;
+      const currentAttempt = attemptId;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = playbackTuning.rate;
+      utter.pitch = playbackTuning.pitch;
+      if (settings.lang) {
+        utter.lang = settings.lang;
+      }
+      if (settings.voice) {
+        utter.voice = settings.voice;
+      }
+      utter.onstart = () => {
+        if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
+          return;
+        }
+        started = true;
+        if (fallbackKickoffTimer) {
+          window.clearTimeout(fallbackKickoffTimer);
+          fallbackKickoffTimer = null;
+        }
+      };
+      utter.onend = () => {
+        if (speechToken === activeSpeechToken && currentAttempt === attemptId) {
+          stopSpeakingVisuals();
+        }
+      };
+      utter.onerror = () => {
+        if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
+          return;
+        }
+        if (!isFallback && playbackPlan.fallback) {
+          window.speechSynthesis.cancel();
+          speakWithSettings(playbackPlan.fallback, true);
+          return;
+        }
+        stopSpeakingVisuals();
+      };
+      if (!isFallback && playbackPlan.fallback) {
+        fallbackKickoffTimer = window.setTimeout(() => {
+          if (speechToken !== activeSpeechToken || currentAttempt !== attemptId || started) {
+            return;
+          }
+          window.speechSynthesis.cancel();
+          speakWithSettings(playbackPlan.fallback, true);
+        }, 900);
+      }
+      if (typeof window.speechSynthesis.resume === 'function') {
+        window.speechSynthesis.resume();
+      }
+      window.speechSynthesis.speak(utter);
+    };
+
+    speakWithSettings(playbackPlan.primary);
+  }
+
+  function playWithTencentTts({ text, kind = 'listening', speechToken }) {
+    if (typeof Audio === 'undefined') {
+      playWithBrowserSpeechFallback({ text, kind, speechToken });
+      return;
+    }
+
+    let fallbackTriggered = false;
+    const audio = new Audio(buildTtsAudioUrl(text));
+    audio.preload = 'auto';
+    audio.playbackRate = getTtsPlaybackRate(kind);
+    activePlaybackAudio = audio;
+
+    const fallbackToBrowserSpeech = () => {
+      if (fallbackTriggered || speechToken !== activeSpeechToken) {
+        return;
+      }
+      fallbackTriggered = true;
+      if (activePlaybackAudio === audio) {
+        activePlaybackAudio = null;
+      }
+      try {
+        audio.pause();
+        audio.src = '';
+      } catch (error) {
+        // Ignore cleanup failures from rejected playback.
+      }
+      playWithBrowserSpeechFallback({ text, kind, speechToken });
+    };
+
+    audio.onended = () => {
+      if (speechToken === activeSpeechToken && activePlaybackAudio === audio) {
+        activePlaybackAudio = null;
+        stopSpeakingVisuals();
+      }
+    };
+    audio.onerror = fallbackToBrowserSpeech;
+
+    const playback = audio.play();
+    if (playback?.catch) {
+      playback.catch(() => {
+        fallbackToBrowserSpeech();
+      });
+    }
   }
 
   storeApi = {
@@ -1286,15 +1463,15 @@ export function useExamStore() {
       };
       recognition.start();
       audioUi.isRecording = true;
+      playRecordingStartCue();
     },
     speak(payload) {
-      const { text, questionId } = normalizeSpeakPayload(payload);
-      if (!window.speechSynthesis) {
+      const { text, questionId, kind } = normalizeSpeakPayload(payload);
+      if (!text) {
         return;
       }
       activeSpeechToken += 1;
       const speechToken = activeSpeechToken;
-      window.speechSynthesis.cancel();
       stopSpeakingVisuals();
       if (questionId) {
         const audioUi = ensureAudioUi(questionId);
@@ -1304,76 +1481,9 @@ export function useExamStore() {
       state.playbackOverlay = {
         visible: true,
         text,
-        kind: questionId ? payload?.kind || 'listening' : 'listening'
+        kind
       };
-      const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-      const playbackPlan = createSpeechPlaybackPlan(voices);
-      const playbackTuning = getSpeechPlaybackTuning(questionId ? payload?.kind || 'listening' : 'listening');
-      let attemptId = 0;
-      let started = false;
-      let fallbackKickoffTimer = null;
-      const safeTextLength = Math.max(1, String(text || '').length);
-      const fallbackDuration = Math.max(2200, Math.min(9000, safeTextLength * 240 + 1800));
-      playbackFallbackTimer = window.setTimeout(() => {
-        if (speechToken === activeSpeechToken) {
-          stopSpeakingVisuals();
-        }
-      }, fallbackDuration);
-
-      const speakWithSettings = (settings, isFallback = false) => {
-        attemptId += 1;
-        const currentAttempt = attemptId;
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = playbackTuning.rate;
-        utter.pitch = playbackTuning.pitch;
-        if (settings.lang) {
-          utter.lang = settings.lang;
-        }
-        if (settings.voice) {
-          utter.voice = settings.voice;
-        }
-        utter.onstart = () => {
-          if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
-            return;
-          }
-          started = true;
-          if (fallbackKickoffTimer) {
-            window.clearTimeout(fallbackKickoffTimer);
-            fallbackKickoffTimer = null;
-          }
-        };
-        utter.onend = () => {
-          if (speechToken === activeSpeechToken && currentAttempt === attemptId) {
-            stopSpeakingVisuals();
-          }
-        };
-        utter.onerror = () => {
-          if (speechToken !== activeSpeechToken || currentAttempt !== attemptId) {
-            return;
-          }
-          if (!isFallback && playbackPlan.fallback) {
-            window.speechSynthesis.cancel();
-            speakWithSettings(playbackPlan.fallback, true);
-            return;
-          }
-          stopSpeakingVisuals();
-        };
-        if (!isFallback && playbackPlan.fallback) {
-          fallbackKickoffTimer = window.setTimeout(() => {
-            if (speechToken !== activeSpeechToken || currentAttempt !== attemptId || started) {
-              return;
-            }
-            window.speechSynthesis.cancel();
-            speakWithSettings(playbackPlan.fallback, true);
-          }, 900);
-        }
-        if (typeof window.speechSynthesis.resume === 'function') {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.speak(utter);
-      };
-
-      speakWithSettings(playbackPlan.primary);
+      playWithTencentTts({ text, kind, speechToken });
     },
     downloadCurrentReport() {
       if (!state.report) {

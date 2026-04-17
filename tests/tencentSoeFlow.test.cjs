@@ -50,6 +50,20 @@ test('relaxReadAloudScore softens low and mid-range Tencent scores', () => {
   assert.equal(tencentSoeService.relaxReadAloudScore(95), 95);
 });
 
+test('relaxOralAnswerScore gives listen-answer questions a more generous curve', () => {
+  assert.equal(typeof tencentSoeService?.relaxOralAnswerScore, 'function');
+
+  assert.equal(tencentSoeService.relaxOralAnswerScore(0, 'listen_answer_question'), 28);
+  assert.equal(tencentSoeService.relaxOralAnswerScore(30, 'listen_answer_question'), 51);
+  assert.equal(tencentSoeService.relaxOralAnswerScore(45, 'listen_answer_question'), 63);
+  assert.equal(tencentSoeService.relaxOralAnswerScore(75, 'listen_answer_question'), 82);
+  assert.equal(
+    tencentSoeService.relaxOralAnswerScore(45, 'listen_answer_question') >
+      tencentSoeService.relaxOralAnswerScore(45, 'read_aloud'),
+    true
+  );
+});
+
 test('buildSoeRequestParams chooses eval mode from the reference text', () => {
   assert.equal(typeof tencentSoeService?.buildSoeRequestParams, 'function');
 
@@ -198,6 +212,36 @@ test('buildSubmissionResultFromAnswerRows rebuilds the final report from stored 
   assert.equal(submission.report.percent, 87);
   assert.equal(submission.report.comments.middle, 'Great job');
   assert.equal(submission.report.details.length, 2);
+});
+
+test('paper repository marks all spoken question types for AI scoring and builds their reference text', () => {
+  assert.equal(typeof paperRepository?.isAiScoredQuestionType, 'function');
+  assert.equal(typeof paperRepository?.buildAiScoringReferenceText, 'function');
+
+  assert.equal(paperRepository.isAiScoredQuestionType('read_aloud'), true);
+  assert.equal(paperRepository.isAiScoredQuestionType('read_sentence_with_image'), true);
+  assert.equal(paperRepository.isAiScoredQuestionType('listen_answer_question'), true);
+  assert.equal(paperRepository.isAiScoredQuestionType('listen_choose_image'), false);
+
+  assert.equal(
+    paperRepository.buildAiScoringReferenceText({
+      questionType: 'read_sentence_with_image',
+      prompt: 'Read the sentence.',
+      correctAnswer: { correctText: 'This is a rabbit.' },
+      question: { sentenceText: 'This is a rabbit.' }
+    }),
+    'This is a rabbit.'
+  );
+
+  assert.equal(
+    paperRepository.buildAiScoringReferenceText({
+      questionType: 'listen_answer_question',
+      prompt: 'Answer the question.',
+      correctAnswer: { correctText: 'apple, red apple' },
+      question: { answerKeywordsText: 'apple, red apple', questionText: 'What fruit do you like?' }
+    }),
+    'apple, red apple'
+  );
 });
 
 test('formatSubmissionLog returns a general log line for every submission', () => {

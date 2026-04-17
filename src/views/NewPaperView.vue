@@ -314,7 +314,7 @@ const {
   getQuestionDifficultyLabel
 } = questionDifficultyUtils;
 const { createDefaultReportCommentConfig } = reportCommentsUtils;
-const HIDDEN_QUESTION_TYPES = ['sentence_sort', 'spell_blank', 'read_sentence_with_image', 'match_image_word'];
+const HIDDEN_QUESTION_TYPES = ['sentence_sort', 'spell_blank', 'match_image_word'];
 
 const abilityOptions = REPORT_ABILITIES.map((value) => ({ label: value, value }));
 const questionDifficultyOptions = QUESTION_DIFFICULTY_OPTIONS;

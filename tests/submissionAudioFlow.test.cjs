@@ -16,9 +16,11 @@ test('client exposes a dedicated answer-audio upload API helper', () => {
 
 test('exam store captures microphone audio and uploads it before final submission', () => {
   const source = read('src/store/examStore.js');
+  const readAloudSource = read('src/components/questions/ReadAloud.vue');
 
   assert.match(source, /MediaRecorder/);
   assert.match(source, /prewarmAnswerAudioRecorder/);
+  assert.match(source, /playRecordingStartCue/);
   assert.match(source, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(source, /await startAnswerAudioRecording/);
   assert.match(source, /isPreparingMic/);
@@ -28,6 +30,7 @@ test('exam store captures microphone audio and uploads it before final submissio
   assert.match(source, /showStudentNotice\(/);
   assert.match(source, /uploadAnswerAudio/);
   assert.match(source, /audioPath/);
+  assert.match(readAloudSource, /:disabled="audioState\.isPreparingMic"/);
 });
 
 test('exam store keeps the student in a generating-report state until the backend returns the final report', () => {

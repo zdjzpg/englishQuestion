@@ -111,6 +111,27 @@ function relaxReadAloudScore(score) {
   return clampScore(normalized + (90 - normalized) * 0.2);
 }
 
+function relaxListenAnswerScore(score) {
+  const normalized = clampScore(score);
+
+  if (normalized >= 90) {
+    return normalized;
+  }
+
+  if (normalized <= 60) {
+    return clampScore(normalized + 15 + (60 - normalized) * 0.2 + (normalized < 10 ? 1 : 0));
+  }
+
+  return clampScore(normalized + 1 + (90 - normalized) * 0.4);
+}
+
+function relaxOralAnswerScore(score, questionType = 'read_aloud') {
+  if (questionType === 'listen_answer_question') {
+    return relaxListenAnswerScore(score);
+  }
+  return relaxReadAloudScore(score);
+}
+
 function parseScoreCoeff(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -410,7 +431,7 @@ async function requestSoeScoreOverWebSocket({
   });
 }
 
-async function scoreReadAloudAnswer({ audioPath = '', refText = '' } = {}) {
+async function scoreReadAloudAnswer({ audioPath = '', refText = '', questionType = 'read_aloud' } = {}) {
   const config = getSoeConfig();
   const normalizedRefText = normalizeReferenceText(refText);
   const audioAbsolutePath = resolveAudioAbsolutePath(audioPath);
@@ -451,7 +472,7 @@ async function scoreReadAloudAnswer({ audioPath = '', refText = '' } = {}) {
     const sourceRawScore = normalizeSoeSuggestedScore(response);
 
     return {
-      rawScore: relaxReadAloudScore(sourceRawScore),
+      rawScore: relaxOralAnswerScore(sourceRawScore, questionType),
       sourceRawScore,
       fallbackUsed: false,
       response
@@ -470,6 +491,7 @@ module.exports = {
   getSoeConfig,
   normalizeSoeSuggestedScore,
   parseSoeResultPayload,
+  relaxOralAnswerScore,
   relaxReadAloudScore,
   requestSoeScoreOverWebSocket,
   scoreReadAloudAnswer

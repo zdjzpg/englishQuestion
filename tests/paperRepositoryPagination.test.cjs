@@ -56,6 +56,7 @@ test('listPapers returns paginated items with total and applies limit/offset', a
         owner_user_id: 7,
         owner_username: 'alice',
         share_code: '123456',
+        question_types: 'listen_answer_question,read_aloud',
         submission_count: 3
       }
     ]];
@@ -83,7 +84,8 @@ test('listPapers returns paginated items with total and applies limit/offset', a
           submissionCount: 3,
           ownerUserId: '7',
           ownerUsername: 'alice',
-          shareCode: '123456'
+          shareCode: '123456',
+          questionTypes: ['listen_answer_question', 'read_aloud']
         }
       ],
       total: 23,

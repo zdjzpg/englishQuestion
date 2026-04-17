@@ -26,6 +26,7 @@ const {
 const { getPool } = require('./db');
 const { ensureSchema } = require('./schema');
 const { saveAnswerAudio } = require('./uploadRepository');
+const { getOrCreateTtsAudioFile } = require('./tencentTtsService');
 
 const app = express();
 const port = Number(process.env.API_PORT || 3001);
@@ -101,6 +102,19 @@ app.get('/api/health', async (req, res) => {
     const pool = getPool();
     await pool.query('SELECT 1');
     res.json({ ok: true });
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+app.get('/api/tts', async (req, res) => {
+  try {
+    const result = await getOrCreateTtsAudioFile({
+      text: req.query.text || ''
+    });
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.sendFile(result.absolutePath);
   } catch (error) {
     handleError(res, error);
   }

@@ -21,7 +21,21 @@ test('answers image export builds the same report snapshot as the student report
   assert.match(viewSource, /import submissionReportSnapshotUtils from '\.\.\/shared\/submissionReportSnapshot'/, 'expected shared snapshot helper import');
   assert.match(viewSource, /const \{ buildSubmissionReportSnapshot \} = submissionReportSnapshotUtils;/, 'expected shared snapshot helper usage');
   assert.match(viewSource, /const snapshot = buildSubmissionReportSnapshot\(/, 'expected export flow to build a full report snapshot');
-  assert.match(viewSource, /createApp\(SubmissionReportCapture,\s*snapshot\)/, 'expected export flow to mount the shared snapshot');
+  assert.match(viewSource, /createApp\(SubmissionReportCapture,\s*\{[\s\S]*\.\.\.snapshot[\s\S]*\}\)/, 'expected export flow to mount the shared snapshot data');
+});
+
+test('submission image export waits for fonts and extra animation frames before capture', () => {
+  assert.match(viewSource, /await waitForSubmissionCaptureReady\(\);/, 'expected export flow to wait for capture readiness');
+  assert.match(viewSource, /if \(document\.fonts\?\.ready\) \{\s*await document\.fonts\.ready;\s*\}/s, 'expected capture readiness to wait for fonts');
+  assert.match(viewSource, /for \(let frame = 0; frame < 4; frame \+= 1\)/, 'expected multiple animation frames after mount');
+});
+
+test('submission image export uses the same responsive report layout mode as the 1280px capture viewport', () => {
+  assert.match(viewSource, /import reportLayoutModeUtils from '\.\.\/shared\/reportLayoutMode'/, 'expected report layout mode helper import');
+  assert.match(viewSource, /const \{ resolveReportLayoutMode \} = reportLayoutModeUtils;/, 'expected report layout mode helper usage');
+  assert.match(viewSource, /const captureWidth = 1280;/, 'expected fixed capture width constant');
+  assert.match(viewSource, /const captureLayoutMode = resolveReportLayoutMode\(captureWidth,\s*typeof window === 'undefined' \? 1080 : window\.innerHeight\);/, 'expected capture layout mode derived from the same helper');
+  assert.match(viewSource, /createApp\(SubmissionReportCapture,\s*\{\s*\.\.\.snapshot,\s*layoutMode:\s*captureLayoutMode\s*\}\)/s, 'expected submission export to pass the derived layout mode into the shared capture component');
 });
 
 test('submission list query returns stored report json for row-level image generation', () => {

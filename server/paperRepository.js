@@ -21,6 +21,7 @@ const { validateReportCommentConfig, resolveReportComments } = reportComments;
 const { buildWeightedAbilityMap, toAbilityItems } = reportAbilities;
 const { validateInstructionQuestion } = followInstruction;
 const { getQuestionTypeLabel } = questionTypeMeta;
+const AI_SCORED_QUESTION_TYPES = new Set(['read_aloud', 'read_sentence_with_image', 'listen_answer_question']);
 
 function parseQuestionRow(row) {
   return {
@@ -172,6 +173,44 @@ function formatSubmissionLog({ submissionId, paperId, student = {}, records = []
   const studentName = String(student?.name || '').trim() || 'Unknown';
   const recordCount = Array.isArray(records) ? records.length : 0;
   return `[Submission] id=${String(submissionId || '')} paper=${String(paperId || '')} student="${studentName}" records=${recordCount}`;
+}
+
+function isAiScoredQuestionType(questionType) {
+  return AI_SCORED_QUESTION_TYPES.has(String(questionType || '').trim());
+}
+
+function buildAiScoringReferenceText({ questionType = '', correctAnswer = {}, question = {}, prompt = '' } = {}) {
+  const normalizedType = String(questionType || '').trim();
+
+  if (normalizedType === 'listen_answer_question') {
+    return String(
+      correctAnswer.correctText
+        || question.answerKeywordsText
+        || (Array.isArray(question.answerKeywords) ? question.answerKeywords.join(', ') : '')
+        || question.questionText
+        || prompt
+        || ''
+    ).trim();
+  }
+
+  if (normalizedType === 'read_sentence_with_image') {
+    return String(
+      correctAnswer.correctText
+        || question.sentenceText
+        || question.phrase
+        || prompt
+        || ''
+    ).trim();
+  }
+
+  return String(
+    correctAnswer.correctText
+      || question.phrase
+      || question.targetWord
+      || question.answerWord
+      || prompt
+      || ''
+  ).trim();
 }
 
 function normalizeQuestionPayload(question, index) {
@@ -370,8 +409,10 @@ async function listPapers({ keyword = '', questionType = '', authUser, page = 1,
         p.owner_user_id,
         p.share_code,
         u.username AS owner_username,
+        GROUP_CONCAT(DISTINCT pq.question_type) AS question_types,
         COUNT(s.id) AS submission_count
       FROM papers p
+      LEFT JOIN paper_questions pq ON pq.paper_id = p.id
       LEFT JOIN submissions s ON s.paper_id = p.id
       LEFT JOIN users u ON u.id = p.owner_user_id
       WHERE ${conditions.join(' AND ')}
@@ -399,6 +440,10 @@ async function listPapers({ keyword = '', questionType = '', authUser, page = 1,
       examTitle: row.title,
       themeNote: row.theme_note || '',
       welcomeSpeech: row.welcome_speech || '',
+      questionTypes: String(row.question_types || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
       questionCount: Number(row.question_count),
       totalScore: Number(row.total_score),
       updatedAt: row.updated_at,
@@ -804,13 +849,14 @@ async function saveSubmission({
     }
 
     for (const answer of storedAnswers) {
-      if (answer.questionType !== 'read_aloud') {
+      if (!isAiScoredQuestionType(answer.questionType)) {
         continue;
       }
 
       const scoringResult = await scoreReadAloudAnswer({
         audioPath: answer.studentAnswer.audioPath || '',
-        refText: answer.correctAnswer.correctText || answer.question?.phrase || answer.prompt || ''
+        refText: buildAiScoringReferenceText(answer),
+        questionType: answer.questionType
       });
       console.log(`[Tencent SOE] submission ${submissionId} ${formatReadAloudScoreLog({
         questionNumber: answer.questionNumber,
@@ -1068,5 +1114,7 @@ module.exports = {
   listSubmissionsByPaper,
   drawRewardForSubmission,
   buildSubmissionResultFromAnswerRows,
-  formatSubmissionLog
+  formatSubmissionLog,
+  isAiScoredQuestionType,
+  buildAiScoringReferenceText
 };

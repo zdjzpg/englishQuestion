@@ -144,10 +144,12 @@ import { toPng } from 'html-to-image';
 import { useRoute, useRouter } from 'vue-router';
 import SubmissionReportCapture from '../components/shared/SubmissionReportCapture.vue';
 import reportImageExportUtils from '../shared/reportImageExport';
+import reportLayoutModeUtils from '../shared/reportLayoutMode';
 import submissionReportSnapshotUtils from '../shared/submissionReportSnapshot';
 import { useExamStore } from '../store/examStore';
 
 const { buildReportImageOptions } = reportImageExportUtils;
+const { resolveReportLayoutMode } = reportLayoutModeUtils;
 const { buildSubmissionReportSnapshot } = submissionReportSnapshotUtils;
 const router = useRouter();
 const route = useRoute();
@@ -262,10 +264,11 @@ async function downloadSubmissionReportImage(submission) {
   generatingSubmissionId.value = submission.id;
 
   try {
+    const captureWidth = 1280;
     mountHost.style.position = 'fixed';
     mountHost.style.left = '-10000px';
     mountHost.style.top = '0';
-    mountHost.style.width = '1280px';
+    mountHost.style.width = `${captureWidth}px`;
     mountHost.style.pointerEvents = 'none';
     mountHost.style.zIndex = '-1';
     document.body.appendChild(mountHost);
@@ -275,16 +278,16 @@ async function downloadSubmissionReportImage(submission) {
       submission,
       paper: selectedPaper || {}
     });
+    const captureLayoutMode = resolveReportLayoutMode(captureWidth, typeof window === 'undefined' ? 1080 : window.innerHeight);
 
-    app = createApp(SubmissionReportCapture, snapshot);
+    app = createApp(SubmissionReportCapture, {
+      ...snapshot,
+      layoutMode: captureLayoutMode
+    });
     app.mount(mountHost);
 
     await nextTick();
-    await new Promise((resolve) => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(resolve);
-      });
-    });
+    await waitForSubmissionCaptureReady();
 
     const captureNode = mountHost.firstElementChild || mountHost;
     const dataUrl = await toPng(captureNode, buildReportImageOptions());
@@ -323,6 +326,18 @@ function studentSummary(student) {
 
 function reportSummary(report) {
   return `总分：${report.total} / ${report.totalPossible}\n完成率：${report.percent}%`;
+}
+
+async function waitForSubmissionCaptureReady() {
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  for (let frame = 0; frame < 4; frame += 1) {
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(resolve);
+    });
+  }
 }
 
 watch(selectedPaperId, async (paperId, previousPaperId) => {

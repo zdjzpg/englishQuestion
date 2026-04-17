@@ -23,6 +23,13 @@ test('configured papers view binds table pagination and reacts to page changes',
   assert.match(source, /function handleTableChange\(pagination\)/);
 });
 
+test('configured papers view builds type summary from paged questionTypes when full questions are absent', () => {
+  const source = read('src/views/ConfiguredPapersView.vue');
+
+  assert.match(source, /const rawTypes = Array\.isArray\(paper\.questionTypes\) && paper\.questionTypes\.length/);
+  assert.match(source, /\? paper\.questionTypes/);
+});
+
 test('exam store tracks paged paper results instead of only replacing the paper array', () => {
   const source = read('src/store/examStore.js');
 

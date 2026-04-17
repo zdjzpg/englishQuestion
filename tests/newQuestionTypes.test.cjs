@@ -6,6 +6,12 @@ const {
   normalizeNewQuestionType,
   evaluateNewQuestionAnswer
 } = require('../src/shared/questionTypeSupport');
+const fs = require('node:fs');
+const path = require('node:path');
+
+function read(filePath) {
+  return fs.readFileSync(path.join(__dirname, '..', filePath), 'utf8');
+}
 
 test('getNewQuestionTypeDefaults returns keyword-based spoken question defaults', () => {
   const question = getNewQuestionTypeDefaults('listen_answer_question');
@@ -91,4 +97,11 @@ test('evaluateNewQuestionAnswer scores image-word matching by number of correct 
   assert.equal(result.gained, 10);
   assert.match(result.studentText, /apple/);
   assert.match(result.correctText, /pear/);
+});
+
+test('new paper editor keeps 图文跟读 visible in the add-question palette', () => {
+  const source = read('src/views/NewPaperView.vue');
+
+  assert.doesNotMatch(source, /HIDDEN_QUESTION_TYPES = \[[^\]]*read_sentence_with_image/);
+  assert.match(source, /question\.type === 'read_sentence_with_image'/);
 });
