@@ -44,6 +44,14 @@
         </div>
       </div>
 
+      <div class="craft-note-strip">
+        <div class="craft-note-strip-title">
+          <span class="craft-note-strip-heading">{{ labels.noteTitle }}</span>
+          <span class="tag">{{ labels.noteTag }}</span>
+        </div>
+        <p class="muted craft-note-strip-text">{{ reportCommentDisplay }}</p>
+      </div>
+
       <div class="report-panels craft-report-panels">
         <div class="card craft-progress-card">
           <div class="card-title">
@@ -70,43 +78,6 @@
           </div>
           <p class="muted craft-panel-intro">{{ labels.radarIntro }}</p>
           <AbilityRadarChart :items="reportAbilityItems" />
-        </div>
-      </div>
-
-      <div class="craft-report-footer">
-        <div class="card craft-note-card">
-          <div class="card-title">
-            <h2>{{ labels.noteTitle }}</h2>
-            <span class="tag">{{ labels.noteTag }}</span>
-          </div>
-          <div class="stack">
-            <p class="muted craft-note-text">{{ reportCommentDisplay }}</p>
-          </div>
-        </div>
-
-        <div class="card craft-summary-card">
-          <div class="card-title">
-            <h2>{{ labels.summaryTitle }}</h2>
-            <span class="tag">{{ labels.summaryTag }}</span>
-          </div>
-          <div class="craft-summary-grid">
-            <div class="craft-summary-pill">
-              <div class="craft-summary-label">{{ labels.rewardLabel }}</div>
-              <div class="craft-summary-value">{{ rewardName || labels.rewardFallback }}</div>
-            </div>
-            <div class="craft-summary-pill">
-              <div class="craft-summary-label">{{ labels.scoreLabel }}</div>
-              <div class="craft-summary-value">{{ report.total || 0 }} / {{ report.totalPossible || 0 }}</div>
-            </div>
-            <div class="craft-summary-pill">
-              <div class="craft-summary-label">{{ labels.questionCount }}</div>
-              <div class="craft-summary-value">{{ questionCount }} 题</div>
-            </div>
-            <div class="craft-summary-pill">
-              <div class="craft-summary-label">{{ labels.percent }}</div>
-              <div class="craft-summary-value">{{ report.percent || 0 }}%</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -144,12 +115,7 @@ const labels = {
   dynamicTag: '\u52a8\u6001\u7ef4\u5ea6',
   radarIntro: '\u7528\u4e00\u5f20\u8f7b\u677e\u7684\u5c0f\u56fe\uff0c\u770b\u770b\u542c\u3001\u8bf4\u3001\u8bfb\u7684\u6574\u4f53\u5e73\u8861\u611f\u3002',
   noteTitle: '\u8001\u5e08\u60f3\u5bf9\u4f60\u8bf4',
-  noteTag: '\u6210\u957f\u4fbf\u7b7e',
-  summaryTitle: '\u4eca\u65e5\u6536\u83b7',
-  summaryTag: '\u6210\u957f\u5c0f\u7ed3',
-  rewardLabel: '\u62bd\u4e2d\u7684\u793c\u7269',
-  rewardFallback: '\u5df2\u5b8c\u6210\u6311\u6218',
-  scoreLabel: '\u5f97\u5206\u603b\u7ed3'
+  noteTag: '\u6210\u957f\u4fbf\u7b7e'
 };
 
 const props = defineProps({

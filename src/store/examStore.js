@@ -169,6 +169,14 @@ const state = reactive({
   audioUi: {},
   currentIndex: 0,
   report: null,
+  reportGeneratingVisible: false,
+  studentNotice: {
+    visible: false,
+    title: '',
+    message: '',
+    emoji: '🐥',
+    actionLabel: '知道啦'
+  },
   openingAnimationVisible: false,
   finishAnimationVisible: false,
   rewardWheelVisible: false,
@@ -190,6 +198,25 @@ state.paper = state.currentPaper;
 
 function setError(error) {
   state.apiError = error ? error.message || String(error) : '';
+}
+
+function showStudentNotice({
+  title = '',
+  message = '',
+  emoji = '🐥',
+  actionLabel = '知道啦'
+} = {}) {
+  state.studentNotice = {
+    visible: true,
+    title,
+    message,
+    emoji,
+    actionLabel
+  };
+}
+
+function closeStudentNotice() {
+  state.studentNotice.visible = false;
 }
 
 function ensureAnswer(questionId) {
@@ -377,7 +404,12 @@ async function uploadAnswerAudioForQuestion(questionId, questionType) {
   }
 
   if (Number(recording.maxLevel || 0) < 0.01) {
-    window.alert('没有采集到麦克风声音，请重新录音并确认麦克风输入正常。');
+    showStudentNotice({
+      title: '咦，我没有听到声音',
+      message: '请靠近一点麦克风，再大声读一遍，我们马上继续闯关。',
+      emoji: '🐥',
+      actionLabel: '重新开始'
+    });
     return null;
   }
 
@@ -389,7 +421,12 @@ async function uploadAnswerAudioForQuestion(questionId, questionType) {
     answer.audioMimeType = uploaded.audioMimeType || recording.audioMimeType || recording.blob.type || '';
     return uploaded;
   } catch (error) {
-    window.alert('录音已完成，但录音文件保存失败，本次仅保留识别文本。');
+    showStudentNotice({
+      title: '录音没存好，再试一次吧',
+      message: '刚才的声音没有顺利保存，我们再录一遍，就能继续完成这一关。',
+      emoji: '🦄',
+      actionLabel: '再录一次'
+    });
     return null;
   }
 }
@@ -526,6 +563,13 @@ export function useExamStore() {
       audioScoreTimers.delete(questionId);
     }, 1600);
     audioScoreTimers.set(questionId, timerId);
+  }
+
+  function applySpeechRecognitionFallback(questionId, targetText = '', question = null) {
+    const answer = ensureAnswer(questionId);
+    answer.transcript = answer.transcript || targetText || question?.phrase || question?.sentenceText || '';
+    answer.autoScore = 100;
+    flashScored(questionId);
   }
 
   function normalizeSpeakPayload(payload) {
@@ -804,6 +848,8 @@ export function useExamStore() {
         state.currentIndex = 0;
         state.currentSubmissionId = '';
         state.report = null;
+        state.reportGeneratingVisible = false;
+        closeStudentNotice();
         state.openingAnimationVisible = normalizeRewardConfig(rawPaper.rewardConfig || {}).openingAnimationEnabled;
         state.finishAnimationVisible = false;
         state.rewardWheelVisible = false;
@@ -840,6 +886,8 @@ export function useExamStore() {
       state.currentSubmissionId = '';
       state.openingAnimationVisible = false;
       state.report = null;
+      state.reportGeneratingVisible = false;
+      closeStudentNotice();
       state.finishAnimationVisible = false;
       state.rewardWheelVisible = false;
       state.rewardDrawing = false;
@@ -884,7 +932,7 @@ export function useExamStore() {
 
       const reportComments = resolveReportComments(state.currentPaper?.commentConfig || {}, total);
 
-      state.report = {
+      const draftReport = {
         total,
         totalPossible,
         percent: totalPossible ? Math.round((total / totalPossible) * 100) : 0,
@@ -900,20 +948,25 @@ export function useExamStore() {
         }))
       };
 
+      state.reportGeneratingVisible = true;
       try {
         const submission = await apiCreateSubmission(state.currentPaperId, {
           student: state.student,
-          report: state.report,
+          report: draftReport,
           records: details
         });
         state.currentSubmissionId = submission.id || '';
+        state.report = submission.report || draftReport;
         state.finishAnimationVisible = state.currentPaper?.rewardConfig?.finishAnimationEnabled === true;
         state.rewardWheelVisible = !state.finishAnimationVisible && state.currentPaper?.rewardConfig?.enabled === true;
         state.rewardResult = null;
         setError(null);
       } catch (error) {
+        state.report = null;
         setError(error);
         throw error;
+      } finally {
+        state.reportGeneratingVisible = false;
       }
       return true;
     },
@@ -933,6 +986,7 @@ export function useExamStore() {
     closeOpeningAnimation() {
       state.openingAnimationVisible = false;
     },
+    closeStudentNotice,
     completeFinishAnimation() {
       state.finishAnimationVisible = false;
       state.rewardWheelVisible = state.currentPaper?.rewardConfig?.enabled === true;
@@ -1045,21 +1099,21 @@ export function useExamStore() {
     },
     async runSpeechRecognition(questionId, targetText) {
       const audioUi = ensureAudioUi(questionId);
+      const question = state.currentPaper.questions.find((item) => item.id === questionId);
       if (audioUi.isRecording) {
         stopSpeechRecognition(questionId);
-        void trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, state.currentPaper.questions.find((item) => item.id === questionId)?.type || ''));
+        void trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
         audioUi.isRecording = false;
         return;
       }
       const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!Recognition) {
-        window.alert('当前浏览器不支持语音识别，请更换浏览器后再试。');
+        applySpeechRecognitionFallback(questionId, targetText, question);
         return;
       }
       stopSpeakingVisuals();
       audioUi.isRecording = true;
       audioUi.justScored = false;
-      const question = state.currentPaper.questions.find((item) => item.id === questionId);
       await startAnswerAudioRecording(questionId, question?.type || '');
       const recognition = new Recognition();
       recognition.__manualStop = false;
@@ -1080,7 +1134,7 @@ export function useExamStore() {
         activeSpeechRecognitions.delete(questionId);
         ensureAudioUi(questionId).isRecording = false;
         trackAnswerAudioUpload(questionId, uploadAnswerAudioForQuestion(questionId, question?.type || ''));
-        window.alert('语音识别失败，请重试或使用演示评分。');
+        applySpeechRecognitionFallback(questionId, targetText, question);
       };
       recognition.onend = () => {
         activeSpeechRecognitions.delete(questionId);
@@ -1233,6 +1287,8 @@ export function useExamStore() {
       state.audioUi = {};
       state.currentIndex = 0;
       state.report = null;
+      state.reportGeneratingVisible = false;
+      closeStudentNotice();
       state.sessionStarted = false;
       state.playbackOverlay.visible = false;
       return true;
@@ -1252,6 +1308,7 @@ export function useExamStore() {
       state.audioUi = {};
       state.currentIndex = 0;
       state.report = null;
+      closeStudentNotice();
       state.sessionStarted = false;
       state.currentSubmissionId = '';
       state.finishAnimationVisible = false;

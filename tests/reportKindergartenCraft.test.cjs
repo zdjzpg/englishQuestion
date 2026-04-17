@@ -24,10 +24,13 @@ test('paper report and submission export use the shared kindergarten craft repor
 test('report styles define kindergarten craft layout tokens', () => {
   const stylesSource = read('src/styles.css');
   const radarSource = read('src/components/shared/AbilityRadarChart.vue');
+  const sharedReportSource = read('src/components/shared/StudentCraftReport.vue');
 
   assert.match(stylesSource, /\.report-craft-shell\s*\{/);
   assert.match(stylesSource, /\.craft-kpi\.craft-kpi-score\s*\{/);
-  assert.match(stylesSource, /\.craft-note-card\s*\{/);
+  assert.match(stylesSource, /\.craft-note-strip\s*\{/);
   assert.match(stylesSource, /\.craft-progress-fill\s*\{/);
   assert.match(radarSource, /report-radar-card/);
+  assert.match(sharedReportSource, /noteTag:\s*'\\u6210\\u957f\\u4fbf\\u7b7e'/);
+  assert.doesNotMatch(sharedReportSource, /summaryTitle:/);
 });

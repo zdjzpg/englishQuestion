@@ -14,8 +14,9 @@ test('report screen and submission export both reuse the shared craft report com
 
   assert.match(paperViewSource, /StudentCraftReport/, 'expected PaperView to render StudentCraftReport');
   assert.match(submissionCaptureSource, /StudentCraftReport/, 'expected SubmissionReportCapture to render StudentCraftReport');
-  assert.match(reportSource, /craft-report-footer/, 'expected report footer row to exist');
-  assert.match(reportSource, /craft-summary-card/, 'expected second footer card for balanced two-column layout');
+  assert.doesNotMatch(reportSource, /craft-report-footer/, 'expected duplicate footer summary row to be removed');
+  assert.doesNotMatch(reportSource, /craft-summary-card/, 'expected duplicate summary card to be removed');
+  assert.match(reportSource, /craft-note-strip/, 'expected compact note strip to exist');
 });
 
 test('styles define separate desktop and ipad report layouts without page scrolling', () => {
@@ -35,10 +36,10 @@ test('ipad report layout compacts the radar card internals so the bottom metrics
   assert.match(stylesSource, /\.student-craft-report--ipad \.report-radar-card \.ability-radar-kpis \.kpi\s*\{[\s\S]*padding:\s*8px 10px;/, 'expected ipad radar metric pills to use tighter padding');
 });
 
-test('report footer uses an even two-column layout instead of a single full-width note card', () => {
+test('report layout uses a compact note strip and gives the main panels the rest of the space', () => {
   const stylesSource = read('src/styles.css');
 
-  assert.match(stylesSource, /\.craft-report-footer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, 'expected footer row to split into two equal columns');
-  assert.match(stylesSource, /\.student-craft-report--desktop \.craft-report-footer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, 'expected desktop footer to keep equal columns');
-  assert.match(stylesSource, /\.student-craft-report--ipad \.craft-report-footer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, 'expected ipad footer to keep equal columns');
+  assert.match(stylesSource, /\.craft-note-strip\s*\{[\s\S]*padding:\s*14px 18px;/, 'expected compact note strip spacing');
+  assert.match(stylesSource, /\.craft-note-strip-text\s*\{[\s\S]*min-height:\s*0;/, 'expected note strip text to avoid tall reserved space');
+  assert.match(stylesSource, /\.student-craft-report \.report-grid\.report-craft-shell\s*\{[\s\S]*grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/, 'expected layout rows to reserve the large area for the two main panels');
 });

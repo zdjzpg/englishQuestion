@@ -6,16 +6,19 @@ const questionAbilities = require('../src/shared/questionAbilities');
 const questionDifficulty = require('../src/shared/questionDifficulty');
 const studentExperience = require('../src/shared/studentExperience');
 const reportComments = require('../src/shared/reportComments');
+const reportAbilities = require('../src/shared/reportAbilities');
 const followInstruction = require('../src/shared/followInstruction');
 const questionTypeMeta = require('../src/shared/questionTypeMeta');
+const { formatReadAloudScoreLog, scoreReadAloudAnswer } = require('./tencentSoeService');
 
 const { getMissingStudentFields } = studentValidation;
 const { getPaperScoreSummary } = paperValidation;
 const { canEditPaper, getPaperEditBlockedMessage } = paperEditPolicy;
-const { getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilities;
+const { REPORT_ABILITIES, getDefaultAbilitiesForType, normalizeQuestionAbilities } = questionAbilities;
 const { normalizeQuestionDifficulty } = questionDifficulty;
 const { normalizeRewardConfig, pickRewardItem, validateRewardConfig } = studentExperience;
-const { validateReportCommentConfig } = reportComments;
+const { validateReportCommentConfig, resolveReportComments } = reportComments;
+const { buildWeightedAbilityMap, toAbilityItems } = reportAbilities;
 const { validateInstructionQuestion } = followInstruction;
 const { getQuestionTypeLabel } = questionTypeMeta;
 
@@ -44,6 +47,93 @@ function buildQuestionContent(question, content) {
   };
 }
 
+function parseJsonValue(value, fallback = {}) {
+  if (!value) {
+    return fallback;
+  }
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return fallback;
+    }
+  }
+  return value;
+}
+
+function toStudentStatus(answerStatus, gainedScore, totalScore) {
+  if (answerStatus === 'PASS' || Number(gainedScore || 0) >= Number(totalScore || 0) * 0.7) {
+    return '通过';
+  }
+  return '待加强';
+}
+
+function normalizeAnswerAbilities(answer) {
+  const explicit = Array.isArray(answer.question?.abilities) ? answer.question.abilities.filter(Boolean) : [];
+  if (explicit.length) {
+    return explicit;
+  }
+  return getDefaultAbilitiesForType(answer.questionType);
+}
+
+function buildSubmissionResultFromAnswerRows({ student = {}, paper = {}, answers = [] }) {
+  const records = answers.map((answer, index) => {
+    const abilities = normalizeAnswerAbilities(answer);
+    const studentText = String(answer.studentAnswer?.studentText || '').trim() || '未作答';
+    const correctText = String(answer.correctAnswer?.correctText || '').trim() || '未配置';
+    const gained = Number(answer.gainedScore || 0);
+    const total = Number(answer.totalScore || 0);
+    const status = toStudentStatus(answer.answerStatus, gained, total);
+
+    return {
+      index: index + 1,
+      meta: {
+        label: getQuestionTypeLabel(answer.questionType),
+        type: answer.questionType,
+        ability: abilities.join(' / ') || '-'
+      },
+      questionType: answer.questionType,
+      prompt: answer.prompt || '',
+      abilities,
+      studentText,
+      correctText,
+      audioPath: answer.studentAnswer?.audioPath || '',
+      audioUrl: answer.studentAnswer?.audioPath
+        ? `/api/uploads/${String(answer.studentAnswer.audioPath).replace(/\\/g, '/')}`
+        : '',
+      audioMimeType: answer.studentAnswer?.audioMimeType || '',
+      gained,
+      total,
+      status
+    };
+  });
+
+  const abilityMap = buildWeightedAbilityMap(records);
+  const total = records.reduce((sum, item) => sum + Number(item.gained || 0), 0);
+  const totalPossible = records.reduce((sum, item) => sum + Number(item.total || 0), 0);
+  const comments = resolveReportComments(paper.commentConfig || {}, total);
+
+  return {
+    student,
+    records,
+    report: {
+      total,
+      totalPossible,
+      percent: totalPossible ? Math.round((total / totalPossible) * 100) : 0,
+      abilityMap,
+      abilityItems: toAbilityItems(abilityMap, REPORT_ABILITIES),
+      comments,
+      details: records.map((record) => ({
+        label: record.meta.label,
+        gained: record.gained,
+        total: record.total,
+        status: record.status,
+        note: `学生作答：${record.studentText}；标准答案：${record.correctText}`
+      }))
+    }
+  };
+}
+
 function applyOwnerScope({ authUser, alias = 'p' }) {
   if (!authUser || authUser.role === 'ADMIN') {
     return { clause: '', params: [] };
@@ -65,6 +155,12 @@ async function ensurePaperAccess(connection, paperId, authUser) {
     throw error;
   }
   return paper;
+}
+
+function formatSubmissionLog({ submissionId, paperId, student = {}, records = [] } = {}) {
+  const studentName = String(student?.name || '').trim() || 'Unknown';
+  const recordCount = Array.isArray(records) ? records.length : 0;
+  return `[Submission] id=${String(submissionId || '')} paper=${String(paperId || '')} student="${studentName}" records=${recordCount}`;
 }
 
 function normalizeQuestionPayload(question, index) {
@@ -565,7 +661,10 @@ async function saveSubmission({
   try {
     await connection.beginTransaction();
 
-    const [[paper]] = await connection.query('SELECT owner_user_id FROM papers WHERE id = ?', [paperId]);
+    const [[paper]] = await connection.query(
+      'SELECT owner_user_id, comment_config_json FROM papers WHERE id = ?',
+      [paperId]
+    );
     if (!paper) {
       const error = new Error('Paper not found');
       error.statusCode = 404;
@@ -596,14 +695,15 @@ async function saveSubmission({
             student.age || '',
             student.grade || '',
             student.school || '',
-            Number(report.total || 0),
-            Number(report.totalPossible || 0),
-            Number(report.percent || 0),
-            JSON.stringify(report)
+            0,
+            0,
+            0,
+            JSON.stringify({})
       ]
     );
 
     const submissionId = submissionResult.insertId;
+    console.log(formatSubmissionLog({ submissionId, paperId, student, records }));
 
     const [questionRows] = await connection.query(
       `
@@ -615,10 +715,25 @@ async function saveSubmission({
       [paperId]
     );
 
-    for (let index = 0; index < questionRows.length; index += 1) {
-      const questionRow = questionRows[index];
+    const hydratedQuestionRows = questionRows.map(hydrateQuestion);
+    const storedAnswers = [];
+
+    for (let index = 0; index < hydratedQuestionRows.length; index += 1) {
+      const questionRow = hydratedQuestionRows[index];
+      const sourceQuestionRow = questionRows[index];
       const record = records[index] || {};
-      await connection.query(
+      const studentAnswer = {
+        studentText: record.studentText || '',
+        audioPath: record.audioPath || '',
+        audioMimeType: record.audioMimeType || ''
+      };
+      const correctAnswer = {
+        correctText: record.correctText || questionRow.phrase || questionRow.targetWord || questionRow.answerWord || ''
+      };
+      const gainedScore = Number(record.gained || 0);
+      const totalScore = Number(record.total || questionRow.score || 0);
+      const answerStatus = record.status === '通过' ? 'PASS' : 'WARN';
+      const [answerResult] = await connection.query(
         `
           INSERT INTO submission_answers (
             submission_id,
@@ -636,24 +751,95 @@ async function saveSubmission({
         [
           submissionId,
           questionRow.id,
-          questionRow.sort_no,
-          questionRow.question_type,
+          sourceQuestionRow.sort_no,
+          questionRow.type,
           questionRow.prompt,
-          JSON.stringify({
-            studentText: record.studentText || '',
-            audioPath: record.audioPath || '',
-            audioMimeType: record.audioMimeType || ''
-          }),
-          JSON.stringify({ correctText: record.correctText || '' }),
-          Number(record.gained || 0),
-          Number(record.total || 0),
-          record.status === '通过' ? 'PASS' : 'WARN'
+          JSON.stringify(studentAnswer),
+          JSON.stringify(correctAnswer),
+          gainedScore,
+          totalScore,
+          answerStatus
+        ]
+      );
+
+      storedAnswers.push({
+        id: answerResult.insertId,
+        questionNumber: Number(sourceQuestionRow.sort_no || index + 1),
+        questionType: questionRow.type,
+        prompt: questionRow.prompt,
+        gainedScore,
+        totalScore,
+        answerStatus,
+        studentAnswer,
+        correctAnswer,
+        question: questionRow
+      });
+    }
+
+    for (const answer of storedAnswers) {
+      if (answer.questionType !== 'read_aloud') {
+        continue;
+      }
+
+      const scoringResult = await scoreReadAloudAnswer({
+        audioPath: answer.studentAnswer.audioPath || '',
+        refText: answer.correctAnswer.correctText || answer.question?.phrase || answer.prompt || ''
+      });
+      console.log(`[Tencent SOE] submission ${submissionId} ${formatReadAloudScoreLog({
+        questionNumber: answer.questionNumber,
+        scoringResult
+      })}`);
+      const gainedScore = Math.round((Number(scoringResult.rawScore || 0) / 100) * Number(answer.totalScore || 0));
+      const answerStatus = gainedScore >= Number(answer.totalScore || 0) * 0.7 ? 'PASS' : 'WARN';
+
+      answer.studentAnswer = {
+        ...answer.studentAnswer,
+        rawScore: Number(scoringResult.rawScore || 0),
+        fallbackUsed: scoringResult.fallbackUsed === true
+      };
+      answer.gainedScore = gainedScore;
+      answer.answerStatus = answerStatus;
+
+      await connection.query(
+        `
+          UPDATE submission_answers
+          SET student_answer_json = ?, gained_score = ?, answer_status = ?
+          WHERE id = ?
+        `,
+        [
+          JSON.stringify(answer.studentAnswer),
+          gainedScore,
+          answerStatus,
+          answer.id
         ]
       );
     }
 
+    const finalSubmission = buildSubmissionResultFromAnswerRows({
+      student,
+      paper: {
+        commentConfig: parseJsonValue(paper.comment_config_json, {})
+      },
+      answers: storedAnswers
+    });
+
+    await connection.query(
+      `
+        UPDATE submissions
+        SET total_score = ?, total_possible_score = ?, percent_score = ?, report_json = ?
+        WHERE id = ?
+      `,
+      [
+        Number(finalSubmission.report.total || 0),
+        Number(finalSubmission.report.totalPossible || 0),
+        Number(finalSubmission.report.percent || 0),
+        JSON.stringify(finalSubmission.report),
+        submissionId
+      ]
+    );
+
     await connection.commit();
-    return { id: String(submissionId), reward: null };
+    return { id: String(submissionId), reward: null, report: finalSubmission.report };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -853,5 +1039,7 @@ module.exports = {
   copyPaper,
   saveSubmission,
   listSubmissionsByPaper,
-  drawRewardForSubmission
+  drawRewardForSubmission,
+  buildSubmissionResultFromAnswerRows,
+  formatSubmissionLog
 };

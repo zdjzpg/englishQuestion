@@ -17,6 +17,15 @@
       @draw="drawCurrentReward"
       @close="closeRewardWheel"
     />
+    <StudentNoticeBubble
+      :open="state.studentNotice.visible"
+      :title="state.studentNotice.title"
+      :message="state.studentNotice.message"
+      :emoji="state.studentNotice.emoji"
+      :action-label="state.studentNotice.actionLabel"
+      @close="closeStudentNotice"
+    />
+    <ReportGeneratingOverlay :open="state.reportGeneratingVisible" />
     <PlaybackAnimalOverlay
       :open="state.playbackOverlay.visible"
       :text="state.playbackOverlay.text"
@@ -174,7 +183,9 @@ import ReadAloud from '../components/questions/ReadAloud.vue';
 import ReadSentenceWithImage from '../components/questions/ReadSentenceWithImage.vue';
 import SpellBlank from '../components/questions/SpellBlank.vue';
 import PlaybackAnimalOverlay from '../components/shared/PlaybackAnimalOverlay.vue';
+import ReportGeneratingOverlay from '../components/shared/ReportGeneratingOverlay.vue';
 import RewardWheelOverlay from '../components/shared/RewardWheelOverlay.vue';
+import StudentNoticeBubble from '../components/shared/StudentNoticeBubble.vue';
 import StudentCraftReport from '../components/shared/StudentCraftReport.vue';
 import StudentFinishOverlay from '../components/shared/StudentFinishOverlay.vue';
 import StudentOpeningOverlay from '../components/shared/StudentOpeningOverlay.vue';
@@ -197,6 +208,7 @@ const {
   currentAnswer,
   progressPercent,
   closeOpeningAnimation,
+  closeStudentNotice,
   completeFinishAnimation,
   closeRewardWheel,
   drawCurrentReward,

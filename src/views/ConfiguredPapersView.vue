@@ -80,7 +80,7 @@
           </template>
 
           <template v-else-if="column.key === 'shareCode'">
-            <a-tag color="blue">{{ record.shareCode || '-' }}</a-tag>
+            <a-tag color="blue">{{ record.shareCode || "-" }}</a-tag>
           </template>
 
           <template v-else-if="column.key === 'scoreSummary'">
@@ -141,12 +141,12 @@
 </template>
 
 <script setup>
-import { DownOutlined } from '@ant-design/icons-vue';
-import { message, Modal } from 'ant-design-vue';
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import paperEditPolicy from '../shared/paperEditPolicy';
-import { useExamStore } from '../store/examStore';
+import { DownOutlined } from "@ant-design/icons-vue";
+import { message, Modal } from "ant-design-vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import paperEditPolicy from "../shared/paperEditPolicy";
+import { useExamStore } from "../store/examStore";
 
 const { canEditPaper } = paperEditPolicy;
 const router = useRouter();
@@ -160,15 +160,20 @@ const {
   state,
   buildShareLink,
 } = useExamStore();
-const keyword = ref('');
+const keyword = ref("");
 const selectedType = ref(undefined);
+const viewportWidth = ref(typeof window === 'undefined' ? 1600 : window.innerWidth);
 
 const filteredPapers = computed(() => configuredPapers.value);
 const totalSubmissions = computed(() =>
-  configuredPapers.value.reduce((sum, paper) => sum + Number(paper.submissionCount || 0), 0),
+  configuredPapers.value.reduce(
+    (sum, paper) => sum + Number(paper.submissionCount || 0),
+    0,
+  ),
 );
+const isCompactTableViewport = computed(() => viewportWidth.value < 1480);
 const typeOptions = computed(() => [
-  { label: '全部题型', value: '' },
+  { label: "全部题型", value: "" },
   ...Object.entries(TYPE_META).map(([value, meta]) => ({
     value,
     label: meta.label,
@@ -176,26 +181,26 @@ const typeOptions = computed(() => [
 ]);
 const columns = computed(() => {
   const base = [
-    { title: '卷子名称', key: 'examTitle', dataIndex: 'examTitle', width: 240 },
-    { title: '题型概览', key: 'typeText', width: 220 },
-    { title: '分享码', key: 'shareCode', width: 110 },
-    { title: '题数 / 总分', key: 'scoreSummary', width: 120 },
-    { title: '答题记录', key: 'submissionCount', width: 110 },
-    { title: '最近更新', key: 'updatedAt', width: 170 },
+    { title: "卷子名称", key: "examTitle", dataIndex: "examTitle", width: 240 },
+    { title: "题型概览", key: "typeText", width: 220 },
+    { title: "分享码", key: "shareCode", width: 110 },
+    { title: "题数 / 总分", key: "scoreSummary", width: 120 },
+    { title: "答题记录", key: "submissionCount", width: 110 },
+    { title: "最近更新", key: "updatedAt", width: 170 },
     {
-      title: '操作',
-      key: 'actions',
+      title: "操作",
+      key: "actions",
       width: 300,
-      align: 'right',
-      fixed: 'right',
+      align: "right",
+      fixed: isCompactTableViewport.value ? undefined : 'right',
     },
   ];
 
-  if (state.authUser?.role === 'ADMIN') {
+  if (state.authUser?.role === "ADMIN") {
     base.splice(5, 0, {
-      title: '归属员工',
-      dataIndex: 'ownerUsername',
-      key: 'ownerUsername',
+      title: "归属员工",
+      dataIndex: "ownerUsername",
+      key: "ownerUsername",
       width: 140,
     });
   }
@@ -207,44 +212,49 @@ const tableScrollX = computed(() =>
 );
 
 onMounted(async () => {
+  window.addEventListener('resize', handleViewportResize);
   await refreshPapers();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleViewportResize);
 });
 
 function createPaper() {
   createNewPaper();
-  router.push({ name: 'paper-new' });
+  router.push({ name: "paper-new" });
 }
 
 function editPaper(paperId) {
-  router.push({ name: 'paper-new', query: { id: paperId } });
+  router.push({ name: "paper-new", query: { id: paperId } });
 }
 
 function openAnswers(paperId) {
-  router.push({ name: 'answers', query: { paperId } });
+  router.push({ name: "answers", query: { paperId } });
 }
 
 function previewPaper(shareCode) {
   if (!shareCode) {
     return;
   }
-  router.push({ name: 'paper', params: { shareCode } });
+  router.push({ name: "paper", params: { shareCode } });
 }
 
 async function copyPaperAndRefresh(paperId) {
   await copyPaper(paperId);
-  message.success('卷子已复制');
+  message.success("卷子已复制");
 }
 
 function deletePaperAndRefresh(paperId) {
   Modal.confirm({
-    title: '确认删除这张卷子吗？',
-    content: '删除后不可恢复，学生端分享码也会失效。',
-    okText: '删除',
-    cancelText: '取消',
+    title: "确认删除这张卷子吗？",
+    content: "删除后不可恢复，学生端分享码也会失效。",
+    okText: "删除",
+    cancelText: "取消",
     okButtonProps: { danger: true },
     async onOk() {
       await removePaper(paperId);
-      message.success('卷子已删除');
+      message.success("卷子已删除");
     },
   });
 }
@@ -258,29 +268,29 @@ async function copyShareCode(shareCode) {
     message.success(`分享码 ${shareCode} 已复制`);
     return;
   }
-  window.prompt('请复制以下分享码：', shareCode);
+  window.prompt("请复制以下分享码：", shareCode);
 }
 
 async function copyShareLink(shareCode) {
   const link = buildShareLink(shareCode);
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(link);
-    message.success('分享链接已复制');
+    message.success("分享链接已复制");
     return;
   }
-  window.prompt('请复制以下分享链接：', link);
+  window.prompt("请复制以下分享链接：", link);
 }
 
 function handleMoreAction(actionKey, paper) {
-  if (actionKey === 'copy') {
+  if (actionKey === "copy") {
     copyPaperAndRefresh(paper.id);
-  } else if (actionKey === 'code') {
+  } else if (actionKey === "code") {
     copyShareCode(paper.shareCode);
-  } else if (actionKey === 'link') {
+  } else if (actionKey === "link") {
     copyShareLink(paper.shareCode);
-  } else if (actionKey === 'preview') {
+  } else if (actionKey === "preview") {
     previewPaper(paper.shareCode);
-  } else if (actionKey === 'delete') {
+  } else if (actionKey === "delete") {
     deletePaperAndRefresh(paper.id);
   }
 }
@@ -288,7 +298,7 @@ function handleMoreAction(actionKey, paper) {
 async function refreshPapers() {
   await fetchPapers({
     keyword: keyword.value.trim(),
-    questionType: selectedType.value || '',
+    questionType: selectedType.value || "",
   });
 }
 
@@ -302,14 +312,18 @@ function paperTypeText(paper) {
   const labels = (paper.questions || [])
     .map((question) => TYPE_META[question.type]?.label || question.type)
     .filter(Boolean);
-  return labels.length ? labels.join(' / ') : '未配置题型';
+  return labels.length ? labels.join(" / ") : "未配置题型";
 }
 
 function paperSummary(paper) {
-  return paper.themeNote || paper.welcomeSpeech || '暂无卷子说明';
+  return paper.themeNote || paper.welcomeSpeech || "暂无卷子说明";
 }
 
 function formatDate(value) {
-  return value ? new Date(value).toLocaleString() : '-';
+  return value ? new Date(value).toLocaleString() : "-";
+}
+
+function handleViewportResize() {
+  viewportWidth.value = window.innerWidth;
 }
 </script>

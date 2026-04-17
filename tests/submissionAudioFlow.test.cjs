@@ -1,4 +1,4 @@
-const test = require('node:test');
+﻿const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -22,9 +22,41 @@ test('exam store captures microphone audio and uploads it before final submissio
   assert.match(source, /await startAnswerAudioRecording/);
   assert.match(source, /AudioContext|webkitAudioContext/);
   assert.match(source, /maxLevel/);
-  assert.match(source, /没有采集到麦克风声音/);
+  assert.match(source, /showStudentNotice\(/);
   assert.match(source, /uploadAnswerAudio/);
   assert.match(source, /audioPath/);
+});
+
+test('exam store keeps the student in a generating-report state until the backend returns the final report', () => {
+  const source = read('src/store/examStore.js');
+  const viewSource = read('src/views/PaperView.vue');
+
+  assert.match(source, /reportGeneratingVisible/);
+  assert.match(source, /submission\.report/);
+  assert.match(source, /state\.reportGeneratingVisible = true/);
+  assert.match(source, /state\.reportGeneratingVisible = false/);
+  assert.match(viewSource, /ReportGeneratingOverlay/);
+});
+
+test('microphone warnings use a playful in-app bubble instead of browser alerts', () => {
+  const source = read('src/store/examStore.js');
+  const viewSource = read('src/views/PaperView.vue');
+
+  assert.match(source, /studentNotice/);
+  assert.match(source, /showStudentNotice\(/);
+  assert.match(source, /closeStudentNotice\(/);
+  assert.doesNotMatch(source, /window\.alert\(/);
+  assert.match(viewSource, /StudentNoticeBubble/);
+  assert.match(viewSource, /StudentNoticeBubble/);
+});
+
+test('speech recognition fallback does not alert and directly records a full score', () => {
+  const source = read('src/store/examStore.js');
+
+  assert.match(source, /recognition\.onerror = \(\) => \{/);
+  assert.match(source, /answer\.autoScore = 100/);
+  assert.match(source, /flashScored\(questionId\)/);
+  assert.doesNotMatch(source, /window\.alert\('璇煶璇嗗埆澶辫触/);
 });
 
 test('server exposes upload storage and persists recording metadata with submission answers', () => {

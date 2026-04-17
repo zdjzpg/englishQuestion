@@ -7,8 +7,12 @@ const viewSource = fs.readFileSync(path.join(__dirname, '../src/views/Configured
 const stylesSource = fs.readFileSync(path.join(__dirname, '../src/styles.css'), 'utf8');
 
 function getActionsColumnWidth(source) {
-  const match = source.match(/key:\s*["']actions["'][\s\S]*?width:\s*(\d+)/);
-  return match ? Number(match[1]) : null;
+  const conditionalMatch = source.match(/key:\s*["']actions["'][\s\S]*?width:\s*isCompactTableViewport\.value\s*\?\s*(\d+)\s*:\s*(\d+)/);
+  if (conditionalMatch) {
+    return conditionalMatch.slice(1).map(Number);
+  }
+  const singleMatch = source.match(/key:\s*["']actions["'][\s\S]*?width:\s*(\d+)/);
+  return singleMatch ? [Number(singleMatch[1])] : null;
 }
 
 function getCssBlock(source, selector) {
@@ -18,8 +22,11 @@ function getCssBlock(source, selector) {
 }
 
 test('configured papers actions column keeps enough reserved width for four actions', () => {
-  const width = getActionsColumnWidth(viewSource);
-  assert.ok(width >= 300, `expected actions column width >= 300, got ${width}`);
+  const widths = getActionsColumnWidth(viewSource);
+  assert.ok(Array.isArray(widths) && widths.length > 0, 'expected actions column width declaration');
+  widths.forEach((width) => {
+    assert.ok(width >= 300, `expected actions column width >= 300, got ${width}`);
+  });
 });
 
 test('configured papers table uses its own internal horizontal scroll width instead of a hard-coded narrow viewport', () => {
