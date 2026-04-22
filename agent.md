@@ -313,6 +313,239 @@ pm2 restart english-question
 - 涉及数据库结构变化时，先备份再变更
 - 给用户更新方案时，必须附上“更新后验证步骤”
 
+## 线上发布 / 重发流程（当前服务器固定方案）
+
+当前线上环境固定为：
+
+- 项目目录：`/home/admin/EnglishQuestion`
+- Nginx
+- PM2 进程名：`english-question`
+- MySQL 数据库：`kids_english`
+- 前端静态目录：`/home/admin/EnglishQuestion/dist`
+
+后续只要用户问“怎么发布”“怎么重发”“怎么把最新代码上线”，默认优先按下面流程回答。
+
+### 一、标准发布顺序
+
+1. 本地完成代码修改
+2. 本地根据改动类型执行：
+   - 前端有改动：`npm run build`
+   - 后端有改动：准备上传后端代码
+   - 数据库有改动：准备 SQL 脚本
+3. 用 WinSCP 上传文件到 `/home/admin/EnglishQuestion`
+4. 如果依赖有变化，再在服务器执行 `npm install`
+5. 如果数据库有变化，先备份再执行 SQL
+6. 重启后端服务
+7. 验证接口、页面、关键业务流程
+
+### 二、当前推荐发布方式
+
+#### 1. 前端发布
+
+- 本地执行：
+
+```bash
+npm run build
+```
+
+- 用 WinSCP 上传本地 `dist` 到：
+
+```text
+/home/admin/EnglishQuestion/dist
+```
+
+- 通常不需要重启 Nginx
+- 如果只是纯前端静态修改，通常也不需要重启 PM2
+
+#### 2. 后端发布
+
+- 用 WinSCP 上传：
+  - `server`
+  - 后端依赖的共享文件，例如 `src/shared`
+  - 若有配置变更，确认 `.env` 未被错误覆盖
+
+- 如果没有依赖变化，服务器执行：
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 restart english-question --update-env
+```
+
+#### 3. 数据库发布
+
+- 先备份：
+
+```bash
+mysqldump -u kidsenglish -p kids_english > /home/admin/kids_english_backup_$(date +%F_%H%M%S).sql
+```
+
+- 再执行变更脚本：
+
+```bash
+mysql -u kidsenglish -p kids_english < /home/admin/EnglishQuestion/sql/你的变更脚本.sql
+```
+
+- 数据库改动完成后，通常也要执行：
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 restart english-question --update-env
+```
+
+### 三、依赖更新规则
+
+只有下面文件有变化时，才建议在服务器执行 `npm install`：
+
+- `package.json`
+- `package-lock.json`
+
+推荐命令：
+
+```bash
+cd /home/admin/EnglishQuestion
+npm install --registry=https://registry.npmmirror.com --no-audit --fund=false
+```
+
+### 四、ffmpeg-static 特殊处理规则
+
+如果 `npm install` 卡在或失败于 `ffmpeg-static`，默认按下面流程处理：
+
+1. 先安装系统 ffmpeg：
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg
+```
+
+2. 确认路径：
+
+```bash
+which ffmpeg
+```
+
+正常应为：
+
+```text
+/usr/bin/ffmpeg
+```
+
+3. 安装依赖时显式指定：
+
+```bash
+cd /home/admin/EnglishQuestion
+FFMPEG_BIN=/usr/bin/ffmpeg npm install --registry=https://registry.npmmirror.com --no-audit --fund=false
+```
+
+4. 并确保 `.env` 内有：
+
+```env
+FFMPEG_BIN=/usr/bin/ffmpeg
+```
+
+### 五、数据库账号规则
+
+线上 Node 服务不要默认使用 MySQL `root` 账号。
+
+当前约定应用账号应为：
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=kidsenglish
+DB_PASSWORD=Abcd1234
+DB_NAME=kids_english
+```
+
+如果后端日志出现：
+
+- `Access denied for user 'root'@'localhost'`
+
+优先判断：
+
+- `.env` 是否被错误改成 `DB_USER=root`
+- PM2 是否仍在使用旧环境
+
+### 六、PM2 启动 / 重启规则
+
+#### 1. 正常重启
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 restart english-question --update-env
+```
+
+#### 2. 如果怀疑 PM2 仍在使用旧环境变量
+
+按下面顺序：
+
+```bash
+cd /home/admin/EnglishQuestion
+pm2 delete english-question
+unset DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME API_PORT
+set -a
+. ./.env
+set +a
+pm2 start server/index.js --name english-question --update-env
+pm2 save
+```
+
+### 七、Nginx 当前约定
+
+当前 Nginx 配置文件约定为：
+
+```text
+/etc/nginx/conf.d/english-question.conf
+```
+
+修改配置后，固定执行：
+
+```bash
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+### 八、发布后必做验证
+
+每次上线后，默认至少执行：
+
+```bash
+pm2 status
+curl http://127.0.0.1:3001/api/health
+curl http://127.0.0.1/api/health
+curl -I http://127.0.0.1
+```
+
+并至少人工验证：
+
+- 首页能打开
+- 登录正常
+- 已配置卷子列表正常
+- 新建或编辑卷子正常
+- 学生端能打开卷子
+- 提交答题正常
+- 本卷答题情况页正常
+
+### 九、线上录音 / 语音的已知发布注意事项
+
+- 不要在发布录音相关问题时只看本地；必须区分本地和线上环境
+- 本地可录音但线上不行时，优先排查：
+  - 是否为 `http + IP` 访问
+  - 是否缺少 HTTPS 安全上下文
+- 线上播放语音如果请求 `/api/tts` 返回 `503`，优先排查：
+  - `.env` 中是否配置了腾讯云相关密钥
+  - `TENCENT_SECRET_ID`
+  - `TENCENT_SECRET_KEY`
+  - `TENCENT_TTS_REGION`
+  - `TENCENT_TTS_VOICE_TYPE`
+
+### 十、后续会话对“发布”的默认提问方式
+
+如果用户说“我要发布”“我要更新线上”，默认先追问：
+
+> 这次改动是前端、后端、数据库，还是三者都有？有没有依赖变化？
+
+然后再按上面的固定流程输出，不要跳步骤，不要省略验证。
+
 ## 当前项目状态总结
 一句话概括：
 

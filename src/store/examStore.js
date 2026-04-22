@@ -21,6 +21,7 @@ import {
   fetchPaperById,
   fetchPapers as apiFetchPapers,
   fetchPublicPaperByShareCode,
+  fetchPublicSubmissionReport as apiFetchPublicSubmissionReport,
   fetchPaperSubmissions,
   fetchUsers as apiFetchUsers,
   getStoredAuthToken,
@@ -169,6 +170,7 @@ const state = reactive({
   currentPaper: null,
   paper: null,
   currentSubmissionId: '',
+  reportToken: '',
   student: { name: '', phone: '', age: '', grade: '', school: '' },
   answers: {},
   audioUi: {},
@@ -1158,6 +1160,7 @@ export function useExamStore() {
         state.audioUi = {};
         state.currentIndex = 0;
         state.currentSubmissionId = '';
+        state.reportToken = '';
         state.report = null;
         state.reportGeneratingVisible = false;
         closeStudentNotice();
@@ -1182,6 +1185,50 @@ export function useExamStore() {
         state.loading = false;
       }
     },
+    async loadPublicSubmissionReport(shareCode, reportToken) {
+      state.loading = true;
+      try {
+        activeSpeechRecognitions.clear();
+        activeAnswerAudioRecordings.clear();
+        pendingAnswerAudioUploads.clear();
+        clearAllPreparedAnswerAudio();
+        const normalizedShareCode = normalizeShareCode(shareCode);
+        const result = await apiFetchPublicSubmissionReport(normalizedShareCode, reportToken);
+        state.currentPaperId = result.paper?.id || '';
+        state.currentPaperShareCode = result.paper?.shareCode || normalizedShareCode;
+        state.currentPaper = {
+          ...(result.paper || {}),
+          rewardConfig: normalizeRewardConfig(result.paper?.rewardConfig || {}),
+          commentConfig: normalizeReportCommentConfig(result.paper?.commentConfig || {}),
+          questions: Array.isArray(result.paper?.questions) ? result.paper.questions.map(normalizeQuestion) : []
+        };
+        syncLegacyCurrentPaper();
+        state.student = { ...(result.student || { name: '', phone: '', age: '', grade: '', school: '' }) };
+        state.answers = {};
+        state.audioUi = {};
+        state.currentIndex = 0;
+        state.currentSubmissionId = result.id || '';
+        state.reportToken = result.reportToken || reportToken || '';
+        state.report = result.report || null;
+        state.reportGeneratingVisible = false;
+        closeStudentNotice();
+        state.openingAnimationVisible = false;
+        state.finishAnimationVisible = false;
+        state.rewardWheelVisible = false;
+        state.rewardDrawing = false;
+        state.rewardResult = result.reward || null;
+        state.playbackOverlay.visible = false;
+        state.waveBars = buildWaveBars();
+        state.sessionStarted = false;
+        setError(null);
+        return true;
+      } catch (error) {
+        setError(error);
+        return false;
+      } finally {
+        state.loading = false;
+      }
+    },
     beginPaperSession() {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
@@ -1196,6 +1243,7 @@ export function useExamStore() {
       state.answers = {};
       state.audioUi = {};
       state.currentSubmissionId = '';
+      state.reportToken = '';
       state.openingAnimationVisible = false;
       state.report = null;
       state.reportGeneratingVisible = false;
@@ -1271,6 +1319,7 @@ export function useExamStore() {
           records: details
         });
         state.currentSubmissionId = submission.id || '';
+        state.reportToken = submission.reportToken || '';
         state.report = submission.report || draftReport;
         state.finishAnimationVisible = state.currentPaper?.rewardConfig?.finishAnimationEnabled === true;
         state.rewardWheelVisible = !state.finishAnimationVisible && state.currentPaper?.rewardConfig?.enabled === true;
@@ -1537,12 +1586,13 @@ export function useExamStore() {
       state.config = clone(normalizedPaper);
       state.currentPaper = clone(normalizedPaper);
       state.paper = state.currentPaper;
-      state.student = { name: '', phone: '', age: '', grade: '', school: '' };
-      state.answers = {};
-      state.audioUi = {};
-      state.currentIndex = 0;
-      state.report = null;
-      state.reportGeneratingVisible = false;
+        state.student = { name: '', phone: '', age: '', grade: '', school: '' };
+        state.answers = {};
+        state.audioUi = {};
+        state.currentIndex = 0;
+        state.reportToken = '';
+        state.report = null;
+        state.reportGeneratingVisible = false;
       closeStudentNotice();
       state.sessionStarted = false;
       state.playbackOverlay.visible = false;
@@ -1564,6 +1614,7 @@ export function useExamStore() {
       state.audioUi = {};
       state.currentIndex = 0;
       state.report = null;
+      state.reportToken = '';
       closeStudentNotice();
       state.sessionStarted = false;
       state.currentSubmissionId = '';

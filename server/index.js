@@ -7,6 +7,7 @@ const {
   listPapers,
   getPaperById,
   getPaperByShareCode,
+  getSubmissionReportByToken,
   savePaper,
   deletePaper,
   copyPaper,
@@ -231,6 +232,19 @@ app.get('/api/public/papers/code/:shareCode', async (req, res) => {
       return;
     }
     res.json(paper);
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+app.get('/api/public/papers/code/:shareCode/reports/:reportToken', async (req, res) => {
+  try {
+    const submission = await getSubmissionReportByToken(req.params.shareCode, req.params.reportToken);
+    if (!submission) {
+      res.status(404).json({ message: 'Report not found' });
+      return;
+    }
+    res.json(submission);
   } catch (error) {
     handleError(res, error);
   }

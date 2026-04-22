@@ -1,4 +1,5 @@
-﻿const { getPool } = require('./db');
+﻿const crypto = require('crypto');
+const { getPool } = require('./db');
 const studentValidation = require('../src/shared/studentValidation');
 const paperValidation = require('../src/shared/paperValidation');
 const paperEditPolicy = require('../src/shared/paperEditPolicy');
@@ -743,34 +744,37 @@ async function saveSubmission({
       throw error;
     }
 
+    const reportToken = crypto.randomUUID().replace(/-/g, '');
     const [submissionResult] = await connection.query(
       `
         INSERT INTO submissions (
           paper_id,
           owner_user_id,
-            student_name,
-            student_phone,
-            student_age,
-            student_grade,
-            student_school,
-            total_score,
-            total_possible_score,
-            percent_score,
-            report_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          [
-            paperId,
-            paper.owner_user_id,
-            student.name || '',
-            student.phone || '',
-            student.age || '',
-            student.grade || '',
-            student.school || '',
-            0,
-            0,
-            0,
-            JSON.stringify({})
+          student_name,
+          student_phone,
+          student_age,
+          student_grade,
+          student_school,
+          total_score,
+          total_possible_score,
+          percent_score,
+          report_json,
+          report_token
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        paperId,
+        paper.owner_user_id,
+        student.name || '',
+        student.phone || '',
+        student.age || '',
+        student.grade || '',
+        student.school || '',
+        0,
+        0,
+        0,
+        JSON.stringify({}),
+        reportToken
       ]
     );
 
@@ -912,13 +916,79 @@ async function saveSubmission({
     );
 
     await connection.commit();
-    return { id: String(submissionId), reward: null, report: finalSubmission.report };
+    return { id: String(submissionId), reportToken, reward: null, report: finalSubmission.report };
   } catch (error) {
     await connection.rollback();
     throw error;
   } finally {
     connection.release();
   }
+}
+
+async function getSubmissionReportByToken(shareCode, reportToken) {
+  const normalizedShareCode = String(shareCode || '').trim();
+  const normalizedReportToken = String(reportToken || '').trim();
+  if (!normalizedShareCode || !normalizedReportToken) {
+    return null;
+  }
+
+  const pool = getPool();
+  const [[row]] = await pool.query(
+    `
+      SELECT
+        s.id,
+        s.paper_id,
+        s.student_name,
+        s.student_phone,
+        s.student_age,
+        s.student_grade,
+        s.student_school,
+        s.total_score,
+        s.total_possible_score,
+        s.percent_score,
+        s.report_json,
+        s.reward_json,
+        s.report_token
+      FROM submissions s
+      INNER JOIN papers p ON p.id = s.paper_id
+      WHERE p.share_code = ? AND s.report_token = ?
+      LIMIT 1
+    `,
+    [normalizedShareCode, normalizedReportToken]
+  );
+
+  if (!row) {
+    return null;
+  }
+
+  const paper = await getPaperById(row.paper_id);
+  if (!paper || paper.shareCode !== normalizedShareCode) {
+    return null;
+  }
+
+  const reportData = parseJsonValue(row.report_json, {});
+  return {
+    id: String(row.id),
+    reportToken: row.report_token || normalizedReportToken,
+    student: {
+      name: row.student_name || '',
+      phone: row.student_phone || '',
+      age: row.student_age || '',
+      grade: row.student_grade || '',
+      school: row.student_school || ''
+    },
+    report: {
+      total: Number(row.total_score || 0),
+      totalPossible: Number(row.total_possible_score || 0),
+      percent: Number(row.percent_score || 0),
+      abilityMap: reportData.abilityMap || {},
+      abilityItems: Array.isArray(reportData.abilityItems) ? reportData.abilityItems : [],
+      comments: reportData.comments || {},
+      details: Array.isArray(reportData.details) ? reportData.details : []
+    },
+    reward: parseJsonValue(row.reward_json, null),
+    paper
+  };
 }
 
 async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
@@ -994,9 +1064,7 @@ async function listSubmissionsByPaper(paperId, studentKeyword = '', authUser) {
     );
 
     return submissionRows.map((row) => {
-      const reportData = typeof row.report_json === 'string' && row.report_json
-        ? JSON.parse(row.report_json)
-        : {};
+      const reportData = parseJsonValue(row.report_json, {});
       const records = answerRows
         .filter((answer) => answer.submission_id === row.id)
         .map((answer) => {
@@ -1107,6 +1175,7 @@ module.exports = {
   listPapers,
   getPaperById,
   getPaperByShareCode,
+  getSubmissionReportByToken,
   savePaper,
   deletePaper,
   copyPaper,

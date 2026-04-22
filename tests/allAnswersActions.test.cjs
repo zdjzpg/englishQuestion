@@ -40,6 +40,7 @@ test('submission image export uses the same responsive report layout mode as the
 
 test('submission list query returns stored report json for row-level image generation', () => {
   assert.match(repositorySource, /s\.report_json/, 'expected submission query to read report_json');
+  assert.match(repositorySource, /const reportData = parseJsonValue\(row\.report_json,\s*\{\}\);/, 'expected submission list to parse report_json whether mysql returns a string or object');
   assert.match(repositorySource, /abilityItems:\s*Array\.isArray\(reportData\.abilityItems\)/, 'expected parsed report data to keep ability items');
   assert.match(repositorySource, /comments:\s*reportData\.comments\s*\|\|\s*\{\}/, 'expected parsed report data to keep comments');
 });

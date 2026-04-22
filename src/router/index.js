@@ -47,7 +47,13 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.name === 'paper') {
     const shareCode = typeof to.params.shareCode === 'string' ? to.params.shareCode : '';
-    if (!(await store.preparePaperSession(shareCode))) {
+    const reportToken = typeof to.query.report === 'string' ? to.query.report : '';
+    if (reportToken) {
+      if (!(await store.loadPublicSubmissionReport(shareCode, reportToken))) {
+        next(store.state.authUser ? { name: 'papers' } : { name: 'join', query: { code: shareCode, invalid: '1' } });
+        return;
+      }
+    } else if (!(await store.preparePaperSession(shareCode))) {
       next(store.state.authUser ? { name: 'papers' } : { name: 'join', query: { code: shareCode, invalid: '1' } });
       return;
     }

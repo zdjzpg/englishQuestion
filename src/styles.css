@@ -3580,6 +3580,13 @@ body.report-single-screen .paper-view-shell-report .report-grid {
   display: block;
 }
 
+.radar-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .ability-radar-wrap {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;

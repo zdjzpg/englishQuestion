@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { getPool } = require('./db');
 const { hashPassword } = require('./auth');
 const { generateShareCode } = require('../src/shared/shareCode');
@@ -96,6 +97,14 @@ async function ensureSchema() {
       await connection.query('ALTER TABLE submissions ADD COLUMN student_school VARCHAR(255) NULL AFTER student_grade');
     }
 
+    if (!(await columnExists(connection, databaseName, 'submissions', 'report_token'))) {
+      await connection.query('ALTER TABLE submissions ADD COLUMN report_token VARCHAR(64) NULL AFTER report_json');
+    }
+
+    if (!(await indexExists(connection, databaseName, 'submissions', 'uk_submissions_report_token'))) {
+      await connection.query('ALTER TABLE submissions ADD UNIQUE KEY uk_submissions_report_token (report_token)');
+    }
+
     const adminHash = hashPassword('123456');
     await connection.query(
       `
@@ -134,6 +143,16 @@ async function ensureSchema() {
         WHERE s.owner_user_id IS NULL
       `
     );
+
+    const [tokenlessSubmissions] = await connection.query(
+      'SELECT id FROM submissions WHERE report_token IS NULL OR report_token = ""'
+    );
+    for (const submission of tokenlessSubmissions) {
+      await connection.query(
+        'UPDATE submissions SET report_token = ? WHERE id = ?',
+        [crypto.randomUUID().replace(/-/g, ''), submission.id]
+      );
+    }
   } finally {
     connection.release();
   }

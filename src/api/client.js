@@ -104,6 +104,10 @@ export function fetchPublicPaperByShareCode(shareCode) {
   return request(`/public/papers/code/${shareCode}`);
 }
 
+export function fetchPublicSubmissionReport(shareCode, reportToken) {
+  return request(`/public/papers/code/${shareCode}/reports/${reportToken}`);
+}
+
 export function createPaper(payload) {
   return request('/papers', {
     method: 'POST',

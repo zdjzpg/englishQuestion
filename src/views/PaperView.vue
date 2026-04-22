@@ -353,7 +353,11 @@ function beginExam() {
 }
 
 async function goNext() {
-  await nextQuestion();
+  const finished = await nextQuestion();
+  if (finished && state.currentPaperShareCode && state.reportToken && typeof window !== 'undefined') {
+    const nextHash = `#/paper/${encodeURIComponent(state.currentPaperShareCode)}?report=${encodeURIComponent(state.reportToken)}`;
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${nextHash}`);
+  }
 }
 
 async function downloadReportImage() {

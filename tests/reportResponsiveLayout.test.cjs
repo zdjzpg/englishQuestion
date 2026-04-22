@@ -29,9 +29,13 @@ test('styles define separate desktop and ipad report layouts without page scroll
 
 test('ipad report layout compacts the radar card internals so the bottom metrics do not overflow into the note card', () => {
   const stylesSource = read('src/styles.css');
+  const reportSource = read('src/components/shared/AbilityRadarChart.vue');
 
+  assert.match(reportSource, /class="radar-stage"/, 'expected radar chart to render through a dedicated centering stage');
   assert.match(stylesSource, /\.craft-radar-card\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;[\s\S]*min-height:\s*0;/, 'expected radar card to allow internal shrinking');
   assert.match(stylesSource, /\.ability-radar-wrap\s*\{[\s\S]*grid-template-rows:\s*minmax\(0,\s*1fr\)\s+auto;/, 'expected radar content wrapper to split chart and metrics into shrinkable rows');
+  assert.match(stylesSource, /\.radar-stage\s*\{[\s\S]*display:\s*flex;[\s\S]*justify-content:\s*center;/, 'expected radar stage to center the svg explicitly');
+  assert.match(stylesSource, /\.radar\s*\{[\s\S]*left:\s*50%;[\s\S]*transform:\s*translateX\(-50%\);/, 'expected radar svg to use explicit centering for image export');
   assert.match(stylesSource, /\.student-craft-report--ipad \.report-radar-card \.radar\s*\{[\s\S]*width:\s*clamp\(/, 'expected ipad radar size to respond to viewport height');
   assert.match(stylesSource, /\.student-craft-report--ipad \.report-radar-card \.ability-radar-kpis \.kpi\s*\{[\s\S]*padding:\s*8px 10px;/, 'expected ipad radar metric pills to use tighter padding');
 });
